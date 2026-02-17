@@ -13,9 +13,6 @@
 
   <p align="center">
     Track any Solana transaction in Real-Time
-    <br />
-    <br />
-    <a href="https://t.me/handi_cat_bot"><strong>Use the Telegram bot -></strong></a>
   </p>
 </div>
 

@@ -517,5 +517,21 @@ export const parseTransfers = async () => {
 }
 
 // parseTransfers()
-parseTransactions('pumpfun_amm')
+//parseTransactions('pumpfun_amm')
 // test2()
+
+const test3 = async () => {
+  const transactionDetails = await RpcConnectionManager.getRandomConnection().getParsedTransactions(
+    ['25TemXoQXdqbFMNWe33QjazZkK8BjfXtDuZYq5xhEuEDTpGB6hB4vFY4dAJmMyeC5c92db2f9EJz34gChcaaYDEV'],
+    {
+      maxSupportedTransactionVersion: 0,
+    },
+  )
+
+  for (const instruction of transactionDetails[0]!.meta!.innerInstructions![0].instructions) {
+    // @ts-expect-error
+    console.log(instruction.parsed.info)
+  }
+}
+
+test3()
