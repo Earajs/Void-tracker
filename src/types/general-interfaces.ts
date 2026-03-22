@@ -13,7 +13,7 @@ export interface NativeParserInterface {
   swappedTokenPrice: number | null | undefined
   solPrice: string
   currentHoldingPrice: string
-  currenHoldingPercentage: string
+  currentHoldingPercentage: string
   isNew: boolean
   tokenTransfers: {
     tokenInSymbol: string
@@ -64,10 +64,18 @@ export interface CreateUserGroupInterface {
 
 export interface ParsedTxInfo {
   info: {
-    amount: string
-    authority: string
-    destination: string
-    source: string
+    amount?: string
+    lamports?: number
+    authority?: string
+    destination?: string
+    source?: string
+    mint?: string
+    tokenAmount?: {
+      amount: string
+      decimals: number
+      uiAmount: number
+      uiAmountString: string
+    }
   }
   type: string
 }

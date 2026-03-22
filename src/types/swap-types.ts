@@ -9,6 +9,9 @@ export type WalletWithUsers = Prisma.WalletGetPayload<{
         user: {
           select: {
             id: true
+            notifyBuys: true
+            notifySells: true
+            notifyTransfers: true
           }
         }
       }

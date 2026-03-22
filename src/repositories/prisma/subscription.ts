@@ -1,5 +1,6 @@
 import { PromotionType, SubscriptionPlan } from '@prisma/client'
 import prisma from '../../providers/prisma'
+import { logger } from '../../lib/logger'
 
 export class PrismaSubscriptionRepository {
   constructor() {}
@@ -92,7 +93,7 @@ export class PrismaSubscriptionRepository {
     const userSubscription = await this.getUserSubscription(userId)
 
     if (!userSubscription) {
-      console.log('No subscription found')
+      logger.info('No subscription found')
       return
     }
 
@@ -121,7 +122,7 @@ export class PrismaSubscriptionRepository {
       })
 
       if (!promotion) {
-        console.log('Promotion not found')
+        logger.info('Promotion not found')
         return { success: false, message: 'Promotion not found' }
       }
 
@@ -130,12 +131,12 @@ export class PrismaSubscriptionRepository {
       })
 
       if (existingUserPromotion && !promotion.isStackable) {
-        console.log('User already purchased this non-stackable promotion')
+        logger.info('User already purchased this non-stackable promotion')
         return { success: false, message: 'Non-stackable promotion already purchased' }
       }
 
       if (!promotion.isActive) {
-        console.log('Promotion has expired')
+        logger.info('Promotion has expired')
         return { success: false, message: 'Promotion has expired' }
       }
 
@@ -146,10 +147,10 @@ export class PrismaSubscriptionRepository {
         },
       })
 
-      console.log(`PROMOTION ${promotionType} was purchased by ${userId}`)
+      logger.info(`PROMOTION ${promotionType} was purchased by ${userId}`)
       return { success: true, message: 'Promotion purchased successfully' }
     } catch (error) {
-      console.error('Failed to purchase promotion:', error)
+      logger.error('Failed to purchase promotion:', error)
       return { success: false, message: 'Error purchasing promotion' }
     }
   }

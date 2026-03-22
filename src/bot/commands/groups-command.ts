@@ -5,9 +5,9 @@ import { BotMiddleware } from '../../config/bot-middleware'
 import { GeneralMessages } from '../messages/general-messages'
 import { PrismaGroupRepository } from '../../repositories/prisma/group'
 import { CreateUserGroupInterface } from '../../types/general-interfaces'
-import { MAX_USER_GROUPS } from '../../constants/pricing'
 import { userExpectingGroupId } from '../../constants/flags'
 import { PrismaUserRepository } from '../../repositories/prisma/user'
+import { planConfigService } from '../../services/plan-config-service'
 
 export class GroupsCommand {
   private prismaGroupRepository: PrismaGroupRepository
@@ -75,8 +75,9 @@ export class GroupsCommand {
         this.prismaGroupRepository.getAllUserGroupsCount(userId),
       ])
 
-      if (allUserGroupsCount && allUserGroupsCount >= MAX_USER_GROUPS) {
-        this.bot.sendMessage(chatId, SubscriptionMessages.userGroupsLimit, {
+      const maxGroups = planConfigService.getLimits('PRO').maxGroups
+      if (allUserGroupsCount && allUserGroupsCount >= maxGroups) {
+        this.bot.sendMessage(chatId, SubscriptionMessages.userGroupsLimit(maxGroups), {
           parse_mode: 'HTML',
         })
         return

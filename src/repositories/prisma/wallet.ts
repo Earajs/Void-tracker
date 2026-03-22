@@ -1,6 +1,7 @@
 import { WalletStatus } from '@prisma/client'
 import prisma from '../../providers/prisma'
 import { WalletWithUsers } from '../../types/swap-types'
+import { logger } from '../../lib/logger'
 
 export class PrismaWalletRepository {
   constructor() {}
@@ -66,13 +67,13 @@ export class PrismaWalletRepository {
 
       return newWallet
     } catch (error: any) {
-      console.log('CREATE_WALLET_ERROR', error)
+      logger.info('CREATE_WALLET_ERROR', error)
     }
   }
 
   public async deleteWallet(userId: string, walletAddress: string) {
     if (!walletAddress) {
-      console.log('NO WALLET ADDRESS PROVIDED')
+      logger.info('NO WALLET ADDRESS PROVIDED')
       return
     }
     try {
@@ -91,7 +92,7 @@ export class PrismaWalletRepository {
       })
 
       if (!wallet) {
-        console.log('WALLET NOT FOUND')
+        logger.info('WALLET NOT FOUND')
         return
       }
 
@@ -113,7 +114,7 @@ export class PrismaWalletRepository {
 
       return deletedWallet
     } catch (error) {
-      console.log('DELETE_WALLET_ERROR', error)
+      logger.info('DELETE_WALLET_ERROR', error)
     }
   }
 
@@ -128,7 +129,7 @@ export class PrismaWalletRepository {
 
       return allWallets
     } catch (error) {
-      console.log('GET_ALL_WALLETS_ERROR', error)
+      logger.info('GET_ALL_WALLETS_ERROR', error)
     }
   }
 
@@ -147,7 +148,7 @@ export class PrismaWalletRepository {
 
       return userWallets
     } catch (error) {
-      console.log('GET_ALL_USERS_WALLETS_ERROR', error)
+      logger.info('GET_ALL_USERS_WALLETS_ERROR', error)
     }
   }
 
@@ -215,7 +216,7 @@ export class PrismaWalletRepository {
 
       return walletsWithUsers
     } catch (error: any) {
-      console.log('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
+      logger.info('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
       return
     }
   }
@@ -251,7 +252,7 @@ export class PrismaWalletRepository {
 
       return walletsWithUsers
     } catch (error: any) {
-      console.log('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
+      logger.info('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
       return
     }
   }
@@ -282,7 +283,7 @@ export class PrismaWalletRepository {
 
       return walletsWithUsers
     } catch (error: any) {
-      console.log('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
+      logger.info('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
       return
     }
   }
@@ -306,7 +307,7 @@ export class PrismaWalletRepository {
 
       return walletWithUsers
     } catch (error: any) {
-      console.log('GET_WALLET_BY_ID_ERROR', error)
+      logger.info('GET_WALLET_BY_ID_ERROR', error)
       return null
     }
   }
@@ -345,13 +346,13 @@ export class PrismaWalletRepository {
       })
 
       if (!wallet) {
-        console.log(`No wallet found with ID: ${walletId}`)
+        logger.info(`No wallet found with ID: ${walletId}`)
         return null
       }
 
       return wallet
     } catch (error) {
-      console.error(`Error fetching wallet with ID ${walletId}:`, error)
+      logger.error(`Error fetching wallet with ID ${walletId}:`, error)
       return null
     }
   }
@@ -377,7 +378,7 @@ export class PrismaWalletRepository {
 
       return pausedWallet
     } catch (error) {
-      console.log('Error pausing user wallet')
+      logger.info('Error pausing user wallet')
       return
     }
   }
@@ -413,7 +414,7 @@ export class PrismaWalletRepository {
 
       return true
     } catch (error) {
-      console.log('Error resuming wallet')
+      logger.info('Error resuming wallet')
       return
     }
   }

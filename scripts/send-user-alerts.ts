@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { bot } from '../src/providers/telegram'
-import { MAX_WHALE_WALLETS } from '../src/constants/pricing'
 import chalk from 'chalk'
-import { SUGGEST_UPGRADE_SUBMENU, UPGRADE_PLAN_SUB_MENU } from '../src/config/bot-menus'
+import { SUGGEST_UPGRADE_SUBMENU } from '../src/config/bot-menus'
 
 const prisma = new PrismaClient()
 

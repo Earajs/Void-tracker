@@ -1,8 +1,9 @@
+import { logger } from '../lib/logger'
 export class FormatNumbers {
   constructor() {}
 
   static formatTokenAmount(amount: number) {
-    // console.log('AMOUNT', amount)
+    // logger.info('AMOUNT', amount)
     let scaledAmount: number
 
     if (amount >= 1e9) {

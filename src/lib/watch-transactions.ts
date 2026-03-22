@@ -1,10 +1,10 @@
-import { Connection, PublicKey, LogsFilter, Logs } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { ValidTransactions } from './valid-transactions'
 import EventEmitter from 'events'
 import { TransactionParser } from '../parsers/transaction-parser'
 import { SendTransactionMsgHandler } from '../bot/handlers/send-tx-msg-handler'
 import { bot } from '../providers/telegram'
-import { SwapType, WalletWithUsers } from '../types/swap-types'
+import { WalletWithUsers } from '../types/swap-types'
 import { RateLimit } from './rate-limit'
 import chalk from 'chalk'
 import { RpcConnectionManager } from '../providers/solana'
@@ -13,23 +13,22 @@ import { CronJobs } from './cron-jobs'
 import { PrismaUserRepository } from '../repositories/prisma/user'
 import { WalletPool } from '../config/wallet-pool'
 import TelegramBot from 'node-telegram-bot-api'
+import { logger } from '../lib/logger'
+
+const PAUSED_USERS_CACHE_TTL_MS = 30_000
 
 export class WatchTransaction extends EventEmitter {
   private walletTransactions: Map<string, { count: number; startTime: number }>
-
   private rateLimit: RateLimit
-
   private prismaUserRepository: PrismaUserRepository
+  private pausedUsersCache: { userIds: Set<string>; timestamp: number }
+
   constructor() {
     super()
-
     this.walletTransactions = new Map()
-
-    // this.trackedWallets = new Set()
-
     this.rateLimit = new RateLimit(WalletPool.subscriptions)
-
     this.prismaUserRepository = new PrismaUserRepository()
+    this.pausedUsersCache = { userIds: new Set(), timestamp: 0 }
   }
 
   public async watchSocket(wallets: WalletWithUsers[]): Promise<void> {
@@ -38,115 +37,88 @@ export class WatchTransaction extends EventEmitter {
         const publicKey = new PublicKey(wallet.address)
         const walletAddress = publicKey.toBase58()
 
-        // Check if a subscription already exists for this wallet address
         if (WalletPool.subscriptions.has(walletAddress)) {
-          // console.log(`Already watching for: ${walletAddress}`)
-          continue // Skip re-subscribing
+          continue
         }
 
-        console.log(chalk.greenBright(`Watching transactions for wallet: `) + chalk.yellowBright.bold(walletAddress))
+        logger.info(chalk.greenBright(`Watching transactions for wallet: `) + chalk.yellowBright.bold(walletAddress))
 
-        // Initialize transaction count and timestamp
         this.walletTransactions.set(walletAddress, { count: 0, startTime: Date.now() })
 
-        // Start real-time log
         const subscriptionId = RpcConnectionManager.logConnection.onLogs(
           publicKey,
           async (logs, ctx) => {
-            // Exclude wallets that have reached the limit
-            if (WalletPool.bannedWallets.has(walletAddress)) {
-              console.log(`Wallet ${walletAddress} is excluded from logging.`)
+            try {
+              if (WalletPool.bannedWallets.has(walletAddress)) return
 
-              return
-            }
+              const { isRelevant, swap } = ValidTransactions.isRelevantTransaction(logs)
+              if (!isRelevant) return
 
-            // if (wallet.userWallets[0].status === 'SPAM_PAUSED') {
-            //   console.log('PAUSED TRANSACTIONS FOR: ', walletAddress)
-            //   return
-            // }
+              const walletData = this.walletTransactions.get(walletAddress)
+              if (!walletData) return
 
-            const { isRelevant, swap } = ValidTransactions.isRelevantTransaction(logs)
+              const isWalletRateLimited = await this.rateLimit.txPerSecondCap({
+                wallet,
+                bot,
+                excludedWallets: WalletPool.bannedWallets,
+                walletData,
+              })
+              if (isWalletRateLimited) return
 
-            if (!isRelevant) {
-              // console.log('TRANSACTION IS NOT DEFI', logs.signature)
-              return
-            }
-            // console.log('TRANSACTION IS DEFI', logs.signature)
-            // check txs per second
-            const walletData = this.walletTransactions.get(walletAddress)
-            if (!walletData) {
-              return
-            }
+              const transactionDetails = await this.getParsedTransaction(logs.signature)
+              if (!transactionDetails || transactionDetails[0] === null) return
 
-            const isWalletRateLimited = await this.rateLimit.txPerSecondCap({
-              wallet,
-              bot,
-              excludedWallets: WalletPool.bannedWallets,
-              walletData,
-            })
-
-            if (isWalletRateLimited) {
-              return
-            }
-
-            const transactionSignature = logs.signature
-
-            const transactionDetails = await this.getParsedTransaction(transactionSignature)
-
-            if (!transactionDetails || transactionDetails[0] === null) {
-              return
-            }
-
-            // Parse transaction
-            const solPriceUsd = CronJobs.getSolPrice()
-            const transactionParser = new TransactionParser(transactionSignature)
-
-            if (
-              swap === 'raydium' ||
-              swap === 'jupiter' ||
-              swap === 'pumpfun' ||
-              swap === 'mint_pumpfun' ||
-              swap === 'pumpfun_amm'
-            ) {
-              const parsed = await transactionParser.parseDefiTransaction(
-                transactionDetails,
-                swap,
-                solPriceUsd,
-                walletAddress,
-              )
-              if (!parsed) {
+              const solPriceUsd = CronJobs.getSolPrice()
+              if (!solPriceUsd) {
+                logger.warn('SOL_PRICE_UNDEFINED - skipping transaction')
                 return
               }
-              console.log(parsed.description)
+              const transactionParser = new TransactionParser(logs.signature)
 
-              // await this.sendTransactionMessageToUsers(wallet, parsed)S
-              await this.sendMessageToUsers(wallet, parsed, (handler, parsedData, userId) =>
-                handler.sendTransactionMessage(parsedData, userId),
-              )
-            } else if (swap === 'sol_transfer') {
-              const parsed = await transactionParser.parseSolTransfer(transactionDetails, solPriceUsd, walletAddress)
-              if (!parsed) {
-                return
+              if (
+                swap === 'raydium' ||
+                swap === 'jupiter' ||
+                swap === 'pumpfun' ||
+                swap === 'mint_pumpfun' ||
+                swap === 'pumpfun_amm'
+              ) {
+                const parsed = await transactionParser.parseDefiTransaction(
+                  transactionDetails,
+                  swap,
+                  solPriceUsd,
+                  walletAddress,
+                )
+                if (!parsed) return
+                logger.info(parsed.description)
+                const txType =
+                  parsed.type === 'buy' ? 'defi_buy' : parsed.type === 'sell' ? 'defi_sell' : 'defi_unknown'
+                await this.sendMessageToUsers(wallet, parsed, txType, (handler, parsedData, userId) =>
+                  handler.sendTransactionMessage(parsedData, userId),
+                )
+              } else if (swap === 'sol_transfer') {
+                const parsed = await transactionParser.parseSolTransfer(transactionDetails, solPriceUsd, walletAddress)
+                if (!parsed) return
+                logger.info(parsed.description)
+                await this.sendMessageToUsers(wallet, parsed, 'transfer', (handler, parsedData, userId) =>
+                  handler.sendTransferMessage(parsedData, userId),
+                )
               }
-              console.log(parsed.description)
-
-              // await this.sendTransferMessageToUsers(wallet, parsed)
-              await this.sendMessageToUsers(wallet, parsed, (handler, parsedData, userId) =>
-                handler.sendTransferMessage(parsedData, userId),
-              )
+            } catch (error) {
+              logger.error('ON_LOGS_CALLBACK_ERROR', error)
             }
           },
           'processed',
         )
 
-        // Store subscription ID
         WalletPool.subscriptions.set(wallet.address, subscriptionId)
-        console.log(
+        logger.info(
           chalk.greenBright(`Subscribed to logs with subscription ID: `) + chalk.yellowBright.bold(subscriptionId),
         )
       }
+
+      await this.refreshPausedUsersCache()
     } catch (error) {
-      console.error('Error in watchSocket:', error)
+      logger.error('WATCH_SOCKET_ERROR', error)
     }
   }
 
@@ -155,31 +127,43 @@ export class WatchTransaction extends EventEmitter {
       try {
         const transactionDetails = await RpcConnectionManager.getRandomConnection().getParsedTransactions(
           [transactionSignature],
-          {
-            maxSupportedTransactionVersion: 0,
-          },
+          { maxSupportedTransactionVersion: 0 },
         )
 
         if (transactionDetails && transactionDetails[0] !== null) {
           return transactionDetails
         }
-
-        console.log(`Attempt ${attempt}: No transaction details found for ${transactionSignature}`)
       } catch (error) {
-        console.error(`Attempt ${attempt}: Error fetching transaction details`, error)
+        logger.error(`GET_PARSED_TX_ERROR attempt ${attempt}`, error)
       }
 
-      // Delay before retrying
       await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
     }
 
-    console.error(`Failed to fetch transaction details after ${retries} retries for signature:`, transactionSignature)
+    logger.error(`Failed to fetch transaction after ${retries} retries:`, transactionSignature)
     return null
+  }
+
+  public async refreshPausedUsersCache(): Promise<void> {
+    const allUserIds = WalletPool.wallets.flatMap((w) => w.userWallets.map((uw) => uw.userId))
+    const uniqueUserIds = [...new Set(allUserIds)]
+
+    if (uniqueUserIds.length === 0) return
+
+    const pausedUserIds = await this.prismaUserRepository.getPausedUsers(uniqueUserIds)
+    if (pausedUserIds) {
+      this.pausedUsersCache = { userIds: new Set(pausedUserIds), timestamp: Date.now() }
+    }
+  }
+
+  private isPausedUsersCacheStale(): boolean {
+    return Date.now() - this.pausedUsersCache.timestamp > PAUSED_USERS_CACHE_TTL_MS
   }
 
   private async sendMessageToUsers<T>(
     wallet: WalletWithUsers,
     parsed: T,
+    txType: 'defi_buy' | 'defi_sell' | 'defi_unknown' | 'transfer',
     sendMessageFn: (
       handler: SendTransactionMsgHandler,
       parsed: T,
@@ -188,11 +172,14 @@ export class WatchTransaction extends EventEmitter {
   ) {
     const sendMessageHandler = new SendTransactionMsgHandler(bot)
 
-    const pausedUsers = (await this.prismaUserRepository.getPausedUsers(wallet.userWallets.map((w) => w.userId))) || []
+    if (this.isPausedUsersCacheStale()) {
+      this.refreshPausedUsersCache().catch((error) => {
+        logger.error('REFRESH_PAUSED_USERS_CACHE_ERROR', error)
+      })
+    }
 
-    const activeUsers = wallet.userWallets.filter((w) => !pausedUsers || !pausedUsers.includes(w.userId))
+    const activeUsers = wallet.userWallets.filter((w) => !this.pausedUsersCache.userIds.has(w.userId))
 
-    // Remove duplicate users
     const uniqueActiveUsers = Array.from(new Set(activeUsers.map((user) => user.userId))).map((userId) =>
       activeUsers.find((user) => user.userId === userId),
     )
@@ -201,12 +188,17 @@ export class WatchTransaction extends EventEmitter {
 
     const tasks = uniqueActiveUsers.map((user) =>
       limit(async () => {
-        if (user) {
-          try {
-            await sendMessageFn(sendMessageHandler, parsed, user.userId)
-          } catch (error) {
-            console.log(`Error sending message to user ${user.userId}`)
-          }
+        if (!user) return
+
+        const prefs = user.user
+        if (txType === 'defi_buy' && !prefs.notifyBuys) return
+        if (txType === 'defi_sell' && !prefs.notifySells) return
+        if (txType === 'transfer' && !prefs.notifyTransfers) return
+
+        try {
+          await sendMessageFn(sendMessageHandler, parsed, user.userId)
+        } catch (error) {
+          logger.error(`SEND_MESSAGE_ERROR user=${user.userId}`, error)
         }
       }),
     )

@@ -2,6 +2,7 @@ import { Connection, PublicKey } from '@solana/web3.js'
 import { ParsedTxInfo } from '../types/general-interfaces'
 import { PUMP_FUN_PROGRAM_ID } from '../config/program-ids'
 import { PumpMarketCurve } from './pump-market-curve'
+import { logger } from '../lib/logger'
 
 export class TokenMarketPrice {
   constructor(private connection: Connection) {
@@ -14,8 +15,8 @@ export class TokenMarketPrice {
     solPriceInUsd: number,
   ): Promise<number | undefined> {
     if (type === 'buy') {
-      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.source)
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.destination)
+      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.source ?? '')
+      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.destination ?? '')
 
       const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
       const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
@@ -34,8 +35,8 @@ export class TokenMarketPrice {
 
       return priceOfSPLTokenInUSD
     } else if (type === 'sell') {
-      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.destination)
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.source)
+      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.destination ?? '')
+      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.source ?? '')
 
       const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
       const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
@@ -64,8 +65,8 @@ export class TokenMarketPrice {
     solPriceInUsd: number,
   ): Promise<number | undefined> {
     if (type === 'buy') {
-      const tokenAccountAddress = new PublicKey(txInstructions[1]!.info.source)
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[0]!.info.destination)
+      const tokenAccountAddress = new PublicKey(txInstructions[1]!.info.source ?? '')
+      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[0]!.info.destination ?? '')
 
       const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
       const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
@@ -84,8 +85,8 @@ export class TokenMarketPrice {
 
       return priceOfSPLTokenInUSD
     } else if (type === 'sell') {
-      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.destination)
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.source)
+      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.destination ?? '')
+      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.source ?? '')
 
       const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
       const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
@@ -161,10 +162,10 @@ export class TokenMarketPrice {
 
       const tokenMarketCap = Number(supplyValue) * tokenPrice
 
-      // console.log('TOKEN_MARKET_CAP', tokenMarketCap)
+      // logger.info('TOKEN_MARKET_CAP', tokenMarketCap)
       return { tokenMarketCap, supplyAmount: supplyAmount || 0 }
     } catch (error) {
-      console.log('GET_TOKEN_MKC_ERROR')
+      logger.info('GET_TOKEN_MKC_ERROR')
       return { tokenMarketCap: 0, supplyAmount: 0 }
     }
   }
@@ -174,7 +175,7 @@ export class TokenMarketPrice {
       const tokenBalance = await this.connection.getTokenAccountBalance(tokenAccountAddress)
       return tokenBalance.value.amount
     } catch (error) {
-      console.log('Error fetching token balance:', error)
+      logger.info('Error fetching token balance:', error)
       return
     }
   }

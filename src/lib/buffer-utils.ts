@@ -1,8 +1,9 @@
+import { logger } from '../lib/logger'
 export class BufferUtils {
   static readBytes(buf: Buffer, offset: number, length: number): Buffer | undefined {
     const end = offset + length
     if (buf.byteLength < end) {
-      console.log('range out of bounds')
+      logger.info('range out of bounds')
       return
     }
     return buf.subarray(offset, end)
@@ -19,7 +20,7 @@ export class BufferUtils {
       case 8:
         return buf.readBigUint64LE(offset)
     }
-    console.log(`unsupported data size (${length} bytes)`)
+    logger.info(`unsupported data size (${length} bytes)`)
     return BigInt(0)
   }
 

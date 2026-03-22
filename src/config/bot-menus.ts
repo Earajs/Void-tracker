@@ -1,7 +1,6 @@
 import { InlineKeyboardMarkup } from 'node-telegram-bot-api'
-import { HOBBY_PLAN_FEE, PRO_PLAN_FEE, WHALE_PLAN_FEE } from '../constants/pricing'
 import { HandiCatStatus } from '@prisma/client'
-import { text } from 'stream/consumers'
+import { planConfigService } from '../services/plan-config-service'
 
 export const START_MENU: InlineKeyboardMarkup = {
   inline_keyboard: [
@@ -66,29 +65,35 @@ export const MANAGE_SUB_MENU: InlineKeyboardMarkup = {
   ],
 }
 
-export const UPGRADE_PLAN_SUB_MENU: InlineKeyboardMarkup = {
-  inline_keyboard: [
-    [
-      {
-        text: `BUY HOBBY ${HOBBY_PLAN_FEE / 1e9} SOL/m`,
-        callback_data: 'upgrade_hobby',
-      },
-    ],
-    [
-      {
-        text: `BUY PRO ${PRO_PLAN_FEE / 1e9} SOL/m`,
-        callback_data: 'upgrade_pro',
-      },
-    ],
-    [
-      {
-        text: `BUY WHALE ${WHALE_PLAN_FEE / 1e9} SOL/m`,
-        callback_data: 'upgrade_whale',
-      },
-    ],
+export function getUpgradePlanSubMenu(): InlineKeyboardMarkup {
+  const hobby = planConfigService.getLimits('HOBBY')
+  const pro = planConfigService.getLimits('PRO')
+  const whale = planConfigService.getLimits('WHALE')
 
-    [{ text: '🔙 Back', callback_data: 'back_to_main_menu' }],
-  ],
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: `BUY HOBBY ${hobby.feeSol} SOL/m`,
+          callback_data: 'upgrade_hobby',
+        },
+      ],
+      [
+        {
+          text: `BUY PRO ${pro.feeSol} SOL/m`,
+          callback_data: 'upgrade_pro',
+        },
+      ],
+      [
+        {
+          text: `BUY WHALE ${whale.feeSol} SOL/m`,
+          callback_data: 'upgrade_whale',
+        },
+      ],
+
+      [{ text: '🔙 Back', callback_data: 'back_to_main_menu' }],
+    ],
+  }
 }
 
 export const DONATE_MENU: InlineKeyboardMarkup = {
@@ -111,7 +116,7 @@ export const SUGGEST_UPGRADE_SUBMENU: InlineKeyboardMarkup = {
 
 export const INSUFFICIENT_BALANCE_SUB_MENU: InlineKeyboardMarkup = {
   inline_keyboard: [
-    [{ text: '😺 Your Handi Cat Wallet', callback_data: 'my_wallet' }],
+    [{ text: '😺 Your Void Wallet', callback_data: 'my_wallet' }],
     [{ text: '🔙 Back', callback_data: 'back_to_main_menu' }],
   ],
 }
@@ -121,11 +126,29 @@ export const USER_SETTINGS_MENU = (botStatus: HandiCatStatus): InlineKeyboardMar
     inline_keyboard: [
       [
         {
-          text: `${botStatus === 'ACTIVE' ? '⏸️ Pause Handi Cat' : '▶️ Resume Handi Cat'}`,
+          text: `${botStatus === 'ACTIVE' ? '⏸️ Pause Void' : '▶️ Resume Void'}`,
           callback_data: 'pause-resume-bot',
         },
       ],
+      [{ text: '🔔 Transaction Filters', callback_data: 'tx_filters' }],
       [{ text: '🔙 Back', callback_data: 'back_to_main_menu' }],
+    ],
+  }
+}
+
+export const TX_FILTER_MENU = (
+  notifyBuys: boolean,
+  notifySells: boolean,
+  notifyTransfers: boolean,
+): InlineKeyboardMarkup => {
+  return {
+    inline_keyboard: [
+      [
+        { text: `📈 Buy ${notifyBuys ? 'ON' : 'OFF'}`, callback_data: 'tx_filter_buy' },
+        { text: `📉 Sell ${notifySells ? 'ON' : 'OFF'}`, callback_data: 'tx_filter_sell' },
+        { text: `💸 Transfer ${notifyTransfers ? 'ON' : 'OFF'}`, callback_data: 'tx_filter_transfer' },
+      ],
+      [{ text: '🔙 Back', callback_data: 'settings' }],
     ],
   }
 }
@@ -151,5 +174,50 @@ export const GROUPS_MENU: InlineKeyboardMarkup = {
       },
     ],
     [{ text: '🔙 Back', callback_data: 'back_to_main_menu' }],
+  ],
+}
+
+export const GRANT_PREMIUM_PLAN_MENU: InlineKeyboardMarkup = {
+  inline_keyboard: [
+    [
+      {
+        text: '🐣 HOBBY',
+        callback_data: 'grant_hobby',
+      },
+      {
+        text: '🚀 PRO',
+        callback_data: 'grant_pro',
+      },
+      {
+        text: '🐋 WHALE',
+        callback_data: 'grant_whale',
+      },
+    ],
+    [{ text: '❌ Cancel', callback_data: 'grant_cancel' }],
+  ],
+}
+
+export const SETLIMIT_PLAN_MENU: InlineKeyboardMarkup = {
+  inline_keyboard: [
+    [
+      { text: '🐣 HOBBY', callback_data: 'setlimit_plan_HOBBY' },
+      { text: '🚀 PRO', callback_data: 'setlimit_plan_PRO' },
+      { text: '🐋 WHALE', callback_data: 'setlimit_plan_WHALE' },
+    ],
+    [{ text: '❌ Cancel', callback_data: 'setlimit_cancel' }],
+  ],
+}
+
+export const SETLIMIT_FIELD_MENU: InlineKeyboardMarkup = {
+  inline_keyboard: [
+    [
+      { text: '💼 Max Wallets', callback_data: 'setlimit_field_maxWallets' },
+      { text: '💬 Daily Messages', callback_data: 'setlimit_field_maxDailyMessages' },
+    ],
+    [
+      { text: '👥 Max Groups', callback_data: 'setlimit_field_maxGroups' },
+      { text: '💰 Fee (SOL)', callback_data: 'setlimit_field_feeSol' },
+    ],
+    [{ text: '❌ Cancel', callback_data: 'setlimit_cancel' }],
   ],
 }

@@ -7,6 +7,7 @@ import {
   PUMP_CURVE_TOKEN_DECIMALS,
 } from '../config/program-ids'
 import { BufferUtils } from '../lib/buffer-utils'
+import { logger } from '../lib/logger'
 
 export class PumpMarketCurve {
   static async getPumpCurveState(connection: Connection, curveAddress: PublicKey): Promise<PumpCurveState | undefined> {
@@ -16,13 +17,13 @@ export class PumpMarketCurve {
       !response.data ||
       response.data.byteLength < PUMP_CURVE_STATE_SIGNATURE.byteLength + PUMP_CURVE_STATE_SIZE
     ) {
-      console.log('unexpected curve state')
+      logger.info('unexpected curve state')
       return
     }
 
     const idlSignature = BufferUtils.readBytes(response.data, 0, PUMP_CURVE_STATE_SIGNATURE.byteLength)
     if (idlSignature?.compare(PUMP_CURVE_STATE_SIGNATURE) !== 0) {
-      console.log('unexpected curve state IDL signature')
+      logger.info('unexpected curve state IDL signature')
       return
     }
 
@@ -46,12 +47,12 @@ export class PumpMarketCurve {
       typeof curveState !== 'object' ||
       !(typeof curveState.virtualTokenReserves === 'bigint' && typeof curveState.virtualSolReserves === 'bigint')
     ) {
-      console.log('curveState must be a PumpCurveState')
+      logger.info('curveState must be a PumpCurveState')
       return 0
     }
 
     if (curveState.virtualTokenReserves <= BigInt(0) || curveState.virtualSolReserves <= BigInt(0)) {
-      console.log('curve state contains invalid reserve data')
+      logger.info('curve state contains invalid reserve data')
       return 0
     }
 

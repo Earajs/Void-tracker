@@ -5,6 +5,7 @@ import { SubscriptionMessages } from '../bot/messages/subscription-messages'
 import { PrismaGroupRepository } from '../repositories/prisma/group'
 import { GeneralMessages } from '../bot/messages/general-messages'
 import dotenv from 'dotenv'
+import { logger } from '../lib/logger'
 
 dotenv.config()
 
@@ -32,7 +33,7 @@ export class BotMiddleware {
 
       return isAdmin
     } catch (error) {
-      console.error('Error checking if user is admin:', error)
+      logger.error('Error checking if user is admin:', error)
       return false
     }
   }
@@ -46,7 +47,7 @@ export class BotMiddleware {
 
       return isAdmin
     } catch (error) {
-      console.error('Error checking if user is admin:', error)
+      logger.error('Error checking if user is admin:', error)
       return false
     }
   }

@@ -1,5 +1,6 @@
 import { PublicKey } from '@solana/web3.js'
 import { RpcConnectionManager } from '../providers/solana'
+import { logger } from '../lib/logger'
 
 export class UserBalances {
   constructor() {}
@@ -13,11 +14,11 @@ export class UserBalances {
       // Convert lamports to SOL
       const solBalance = balance / 1_000_000_000
 
-      // console.log(`Balance: ${solBalance} SOL`);
+      // logger.info(`Balance: ${solBalance} SOL`);
 
       return balance
     } catch (error) {
-      console.error('USER_FETCH_BALANCE_ERROR', error)
+      logger.error('USER_FETCH_BALANCE_ERROR', error)
       return
     }
   }

@@ -2,6 +2,8 @@ import { SubscriptionPlan } from '@prisma/client'
 import { CreateWallet } from '../../lib/create-wallet'
 import { CreateUserGroupInterface, CreateUserInterface } from '../../types/general-interfaces'
 import prisma from '../../providers/prisma'
+import { CryptoUtil } from '../../lib/crypto-utils'
+import { logger } from '../../lib/logger'
 
 export class PrismaUserRepository {
   private createWallet: CreateWallet
@@ -79,7 +81,6 @@ export class PrismaUserRepository {
       },
       select: {
         personalWalletPubKey: true,
-        personalWalletPrivKey: true,
       },
     })
 
@@ -99,7 +100,7 @@ export class PrismaUserRepository {
 
       return buyCode
     } catch (error) {
-      console.log('BUY_SOURCE_CODE_ERROR')
+      logger.error('BUY_SOURCE_CODE_ERROR', error)
       return
     }
   }
@@ -123,7 +124,7 @@ export class PrismaUserRepository {
 
       return usersToCharge
     } catch (error) {
-      console.log('GET_USERS_TO_CHARGE_ERROR', error)
+      logger.error('GET_USERS_TO_CHARGE_ERROR', error)
       return []
     }
   }
@@ -158,7 +159,7 @@ export class PrismaUserRepository {
 
       return usersToRenew
     } catch (error) {
-      console.log('GET_USERS_WITH_ENDING_TOMORROW_ERROR', error)
+      logger.error('GET_USERS_WITH_ENDING_TOMORROW_ERROR', error)
       return []
     }
   }
@@ -189,8 +190,8 @@ export class PrismaUserRepository {
 
       return { status: 'ok', message: 'status updated', changedStatus: newStatus }
     } catch (error) {
-      console.log('UPDATE_HANDICAT_STATUS_ERROR', error)
-      return { status: 'error', message: 'An error occurred while updating handi cat status', changedStatus: 'NONE' }
+      logger.error('UPDATE_HANDICAT_STATUS_ERROR', error)
+      return { status: 'error', message: 'An error occurred while updating bot status', changedStatus: 'NONE' }
     }
   }
 
@@ -206,20 +207,21 @@ export class PrismaUserRepository {
       })
 
       if (!user) {
-        console.log('Failed to retrieve user private key')
+        logger.info('Failed to retrieve user private key')
         return
       }
 
-      const trimmedPrivateKey = user.personalWalletPrivKey.replace(/=*$/, '')
+      const decryptedKey = CryptoUtil.decrypt(user.personalWalletPrivKey)
+      const trimmedPrivateKey = decryptedKey.replace(/=*$/, '')
 
       return trimmedPrivateKey
     } catch (error) {
-      console.log('SHOW_PRIVATE_KEY_ERROR')
+      logger.error('SHOW_PRIVATE_KEY_ERROR', error)
       return
     }
   }
 
-  public async getFreeUsers() {
+  public async getFreeUsers(take = 1000, skip = 0) {
     try {
       const freeUsers = await prisma.user.findMany({
         where: {
@@ -230,11 +232,13 @@ export class PrismaUserRepository {
             { userPromotions: { none: {} } },
           ],
         },
+        take,
+        skip,
       })
 
       return freeUsers
     } catch (error) {
-      console.log('GET_FREE_USERS_ERROR')
+      logger.error('GET_FREE_USERS_ERROR', error)
       return
     }
   }
@@ -257,7 +261,7 @@ export class PrismaUserRepository {
 
       return pausedUsers.map((user) => user.id)
     } catch (error) {
-      console.log('GET_PAUSED_USERS_ERROR')
+      logger.error('GET_PAUSED_USERS_ERROR', error)
       return
     }
   }
@@ -275,7 +279,48 @@ export class PrismaUserRepository {
 
       return botStatus
     } catch (error) {
-      console.log('GET_PAUSED_USERS_ERROR')
+      logger.error('GET_BOT_STATUS_ERROR', error)
+      return
+    }
+  }
+
+  public async getNotificationPrefs(userId: string) {
+    try {
+      const prefs = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          notifyBuys: true,
+          notifySells: true,
+          notifyTransfers: true,
+        },
+      })
+
+      return prefs
+    } catch (error) {
+      logger.error('GET_NOTIFICATION_PREFS_ERROR', error)
+      return
+    }
+  }
+
+  public async updateNotificationPref(userId: string, pref: 'notifyBuys' | 'notifySells' | 'notifyTransfers') {
+    try {
+      const current = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { [pref]: true },
+      })
+
+      if (!current) return
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { [pref]: !current[pref] },
+      })
+
+      return !current[pref]
+    } catch (error) {
+      logger.error('UPDATE_NOTIFICATION_PREF_ERROR', error)
       return
     }
   }

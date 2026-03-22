@@ -2,6 +2,7 @@ import prisma from '../../providers/prisma'
 import { CreateUserGroupInterface } from '../../types/general-interfaces'
 import { PrismaUserRepository } from './user'
 import { PrismaWalletRepository } from './wallet'
+import { logger } from '../../lib/logger'
 
 export class PrismaGroupRepository {
   private prismaUserRepository: PrismaUserRepository
@@ -25,7 +26,7 @@ export class PrismaGroupRepository {
 
       return newGroup
     } catch (error) {
-      console.log('ACTIVATE_GROUP_ERROR', error)
+      logger.info('ACTIVATE_GROUP_ERROR', error)
       return
     }
   }
@@ -44,7 +45,7 @@ export class PrismaGroupRepository {
 
       return group
     } catch (error) {
-      console.log('GET_GROUP_BY_ID_ERROR')
+      logger.info('GET_GROUP_BY_ID_ERROR')
       return
     }
   }
@@ -59,7 +60,7 @@ export class PrismaGroupRepository {
 
       return allUserGroups
     } catch (error) {
-      console.log('GET_ALL_USER_GROUPS_COUNT', error)
+      logger.info('GET_ALL_USER_GROUPS_COUNT', error)
       return
     }
   }
@@ -78,7 +79,7 @@ export class PrismaGroupRepository {
 
       return allUserGroups
     } catch (error) {
-      console.log('GET_ALL_USER_GROUPS', error)
+      logger.info('GET_ALL_USER_GROUPS', error)
       return
     }
   }
@@ -95,7 +96,7 @@ export class PrismaGroupRepository {
       })
       return groupUser
     } catch (error) {
-      console.log('GET_GROUP_USER_ERROR')
+      logger.info('GET_GROUP_USER_ERROR')
       return
     }
   }
@@ -118,7 +119,7 @@ export class PrismaGroupRepository {
       // const userGroup = await this.prismaUserRepository.getById(group.id)
       await this.prismaUserRepository.updateUserHandiCatStatus(group.id)
     } catch (error) {
-      console.log('UPDATE_USER_GROUP_STATUS_ERROR', error)
+      logger.info('UPDATE_USER_GROUP_STATUS_ERROR', error)
       return
     }
   }
@@ -164,7 +165,7 @@ export class PrismaGroupRepository {
 
       return deletedGroup
     } catch (error) {
-      console.log('DELETE_GROUP_ERROR', error)
+      logger.info('DELETE_GROUP_ERROR', error)
       return
     }
   }

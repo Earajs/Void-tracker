@@ -49,7 +49,7 @@ ${message.type === 'buy' ? '🟢' : '🔴'} <b><a href="${solscanTxUrl}">${messa
 <b>💎 ${walletName !== '' ? walletName : truncatedOwner}</b>\n
 💎 <b><a href="${solscanAddressUrl}">${walletName !== '' ? walletName : truncatedOwner}</a></b> swapped <b>${amountOut}</b>${message.type === 'sell' ? ` ($${fixedUsdAmount})` : ''} <b><a href="${solscanTokenOutUrl}">${tokenOut}</a></b> for <b>${amountIn}</b>${message.type === 'buy' ? ` ($${fixedUsdAmount})` : ''} <b><a href="${solscanTokenInUrl}">${tokenIn}</a></b> @$${message.swappedTokenPrice?.toFixed(7)}
 
-${Number(message.currenHoldingPercentage) > 0 ? '📈' : '📉'} <b>HOLDS: ${message.currentHoldingPrice} (${message.currenHoldingPercentage}%)</b>
+${Number(message.currentHoldingPercentage) > 0 ? '📈' : '📉'} <b>HOLDS: ${message.currentHoldingPrice} (${message.currentHoldingPercentage}%)</b>
 ${marketCapText}
 <code>${tokenMintToTrack}</code>
 `

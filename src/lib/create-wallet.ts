@@ -1,4 +1,6 @@
 import SolanaWeb3 from '@solana/web3.js'
+import { CryptoUtil } from './crypto-utils'
+import { logger } from '../lib/logger'
 
 export class CreateWallet {
   constructor() {}
@@ -9,9 +11,10 @@ export class CreateWallet {
     const publicKey = keypair.publicKey.toString()
     const privateKey = Buffer.from(keypair.secretKey).toString('base64')
 
-    console.log('Public Key (wallet Address):', publicKey)
-    console.log('Private Key:', privateKey)
+    const encryptedPrivateKey = CryptoUtil.encrypt(privateKey)
 
-    return { publicKey, privateKey }
+    logger.info('Public Key (wallet Address):', publicKey)
+
+    return { publicKey, privateKey: encryptedPrivateKey }
   }
 }

@@ -4,6 +4,7 @@ import { createTxSubMenu } from '../../config/bot-menus'
 import { TxMessages } from '../messages/tx-messages'
 import { PrismaWalletRepository } from '../../repositories/prisma/wallet'
 import { NativeParserInterface, TransferParserInterface } from '../../types/general-interfaces'
+import { logger } from '../../lib/logger'
 
 export class SendTransactionMsgHandler {
   private prismaWalletRepository: PrismaWalletRepository
@@ -23,7 +24,7 @@ export class SendTransactionMsgHandler {
     const walletName = await this.prismaWalletRepository.getUserWalletNameById(chatId, message.owner)
 
     if (!walletName?.address || !message.owner) {
-      console.log('Address not found in user wallets')
+      logger.info('Address not found in user wallets')
       return
     }
 
@@ -33,7 +34,7 @@ export class SendTransactionMsgHandler {
 
         // Check if the market cap is below 1000 and adjust if necessary
         if (tokenMarketCap && tokenMarketCap < 1000) {
-          console.log('MC ADJUSTED')
+          logger.info('MC ADJUSTED')
           tokenMarketCap *= 1000
         }
 
@@ -67,9 +68,9 @@ export class SendTransactionMsgHandler {
       }
     } catch (error: any) {
       if (error.response && error.response.statusCode === 403) {
-        console.log(`User ${chatId} has blocked the bot or chat no longer exists`)
+        logger.info(`User ${chatId} has blocked the bot or chat no longer exists`)
       } else {
-        console.log(`Failed to send message to ${chatId}:`, error)
+        logger.info(`Failed to send message to ${chatId}:`, error)
       }
     }
 
@@ -81,7 +82,7 @@ export class SendTransactionMsgHandler {
       const walletName = await this.prismaWalletRepository.getUserWalletNameById(chatId, message.owner)
 
       if (!walletName?.address || !message.owner) {
-        console.log('Address not found in user wallets')
+        logger.info('Address not found in user wallets')
         return
       }
 
@@ -91,7 +92,7 @@ export class SendTransactionMsgHandler {
         disable_web_page_preview: true,
       })
     } catch (error) {
-      console.log(`Failed to send message to ${chatId}`)
+      logger.info(`Failed to send message to ${chatId}`)
       return
     }
   }

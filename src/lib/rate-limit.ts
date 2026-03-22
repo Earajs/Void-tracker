@@ -1,27 +1,29 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 
 import { SubscriptionPlan } from '@prisma/client'
-import { MAX_FREE_DAILY_MESSAGES } from '../constants/pricing'
 
 import { RateLimitMessages } from '../bot/messages/rate-limit-messages'
 import { TxPerSecondCapInterface } from '../types/general-interfaces'
-import { MAX_5_MIN_TXS_ALLOWED, MAX_TPS_ALLOWED, MAX_TPS_FOR_BAN, WALLET_SLEEP_TIME } from '../constants/handi-cat'
+import { MAX_5_MIN_TXS_ALLOWED, MAX_TPS_ALLOWED, MAX_TPS_FOR_BAN, WALLET_SLEEP_TIME } from '../constants/bot-config'
 import { PrismaWalletRepository } from '../repositories/prisma/wallet'
 import { BANNED_WALLETS } from '../constants/banned-wallets'
 import { RpcConnectionManager } from '../providers/solana'
+import { planConfigService } from '../services/plan-config-service'
+import { logger } from '../lib/logger'
 
 export class RateLimit {
   private prismaWalletRepository: PrismaWalletRepository
+  private resumeTimeouts: Map<string, ReturnType<typeof setTimeout>>
 
   constructor(private subscriptions: Map<string, number>) {
     this.prismaWalletRepository = new PrismaWalletRepository()
+    this.resumeTimeouts = new Map()
   }
 
   public async last5MinutesTxs(walletAddress: string) {
     const currentTime = Date.now()
 
-    // Calculate the time 5 minutes ago
-    const fiveMinutesAgo = currentTime - 1 * 60 * 1000
+    const fiveMinutesAgo = currentTime - 5 * 60 * 1000
 
     const signatures = await RpcConnectionManager.getRandomConnection().getSignaturesForAddress(
       new PublicKey(walletAddress),
@@ -30,9 +32,8 @@ export class RateLimit {
       },
     )
 
-    // Filter the transactions that occurred in the last 5 minutes
     const recentTransactions = signatures.filter((signatureInfo) => {
-      const transactionTime = signatureInfo.blockTime! * 1000 // Convert seconds to milliseconds
+      const transactionTime = signatureInfo.blockTime! * 1000
       return transactionTime >= fiveMinutesAgo
     })
 
@@ -41,61 +42,59 @@ export class RateLimit {
 
   public async txPerSecondCap({ bot, excludedWallets, wallet, walletData }: TxPerSecondCapInterface): Promise<boolean> {
     walletData.count++
-    const elapsedTime = (Date.now() - walletData.startTime) / 1000 // seconds
+    const elapsedTime = (Date.now() - walletData.startTime) / 1000
 
     if (elapsedTime >= 1) {
       const tps = walletData.count / elapsedTime
-      console.log(`TPS for wallet ${wallet.address}: ${tps.toFixed(2)}`)
+      logger.info(`TPS for wallet ${wallet.address}: ${tps.toFixed(2)}`)
 
       if (tps >= MAX_TPS_FOR_BAN) {
         excludedWallets.set(wallet.address, true)
-        // const subscriptionId = this.subscriptions.get(wallet.address)
-        // if (subscriptionId) {
-        //   await this.connection.removeOnLogsListener(subscriptionId)
-        //   this.subscriptions.delete(wallet.address)
-        // }
-        console.log(`Wallet ${wallet.address} has been banned.`)
+        logger.info(`Wallet ${wallet.address} has been banned.`)
         BANNED_WALLETS.add(wallet.address)
         for (const user of wallet.userWallets) {
-          this.prismaWalletRepository.pauseUserWalletSpam(wallet.id, 'BANNED') // update database
+          this.prismaWalletRepository.pauseUserWalletSpam(wallet.id, 'BANNED')
           bot.sendMessage(user.userId, RateLimitMessages.walletWasBanned(wallet.address), { parse_mode: 'HTML' })
         }
-
-        // return true
       }
 
       if (tps >= MAX_TPS_ALLOWED) {
         excludedWallets.set(wallet.address, true)
-        // const subscriptionId = this.subscriptions.get(wallet.address)
-        // if (subscriptionId) {
-        //   logConnection.removeOnLogsListener(subscriptionId)
-        // }
-        console.log(`Wallet ${wallet.address} excluded for 2 hours due to high TPS.`)
+        logger.info(`Wallet ${wallet.address} excluded for 2 hours due to high TPS.`)
 
-        for (const user of wallet.userWallets) {
-          this.prismaWalletRepository.pauseUserWalletSpam(wallet.id, 'SPAM_PAUSED') // update database
-          bot.sendMessage(user.userId, RateLimitMessages.walletWasPaused(wallet.address), { parse_mode: 'HTML' })
+        if (this.resumeTimeouts.has(wallet.address)) {
+          clearTimeout(this.resumeTimeouts.get(wallet.address))
         }
 
-        setTimeout(async () => {
-          excludedWallets.delete(wallet.address)
+        const userWalletsSnapshot = wallet.userWallets.slice()
+        const walletId = wallet.id
+        const walletAddress = wallet.address
 
-          for (const user of wallet.userWallets) {
-            const walletUpdated = await this.prismaWalletRepository.resumeUserWallet(user.userId, wallet.id) // update database
+        for (const user of userWalletsSnapshot) {
+          this.prismaWalletRepository.pauseUserWalletSpam(walletId, 'SPAM_PAUSED')
+          bot.sendMessage(user.userId, RateLimitMessages.walletWasPaused(walletAddress), { parse_mode: 'HTML' })
+        }
+
+        const timeoutId = setTimeout(async () => {
+          this.resumeTimeouts.delete(walletAddress)
+          excludedWallets.delete(walletAddress)
+
+          for (const user of userWalletsSnapshot) {
+            const walletUpdated = await this.prismaWalletRepository.resumeUserWallet(user.userId, walletId)
             if (!walletUpdated) return
-            bot.sendMessage(user.userId, RateLimitMessages.walletWasResumed(wallet.address), {
+            bot.sendMessage(user.userId, RateLimitMessages.walletWasResumed(walletAddress), {
               parse_mode: 'HTML',
             })
           }
 
-          console.log(`Wallet ${wallet.address} re-included after 2 hours.`)
+          logger.info(`Wallet ${walletAddress} re-included after 2 hours.`)
         }, WALLET_SLEEP_TIME)
 
-        // Stop processing for this wallet
+        this.resumeTimeouts.set(wallet.address, timeoutId)
+
         return true
       }
 
-      // Reset for next interval
       walletData.count = 0
       walletData.startTime = Date.now()
     }
@@ -104,8 +103,17 @@ export class RateLimit {
   }
 
   public async dailyMessageLimit(messagesToday: number, userPlan: SubscriptionPlan) {
-    if (userPlan === 'FREE' && messagesToday >= MAX_FREE_DAILY_MESSAGES) {
+    const limit = planConfigService.getLimits(userPlan).maxDailyMessages
+    if (limit > 0 && messagesToday >= limit) {
       return { dailyLimitReached: true }
+    }
+  }
+
+  public clearResumeTimeout(walletAddress: string): void {
+    const timeout = this.resumeTimeouts.get(walletAddress)
+    if (timeout) {
+      clearTimeout(timeout)
+      this.resumeTimeouts.delete(walletAddress)
     }
   }
 }

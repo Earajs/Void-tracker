@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js'
 import { RpcConnectionManager } from '../providers/solana'
 import { formatDistanceToNow } from 'date-fns'
 import { GmgnWalletResponse } from '../types/helius-types'
+import { logger } from '../lib/logger'
 
 export class WalletDetails {
   constructor() {}
@@ -15,7 +16,7 @@ export class WalletDetails {
     )
 
     if (signatures.length === 0) {
-      console.log('No transactions found for this wallet.')
+      logger.info('No transactions found for this wallet.')
       return null
     }
 
@@ -28,7 +29,7 @@ export class WalletDetails {
     })
 
     if (transaction?.blockTime === null) {
-      console.log('Block time not available for this transaction.')
+      logger.info('Block time not available for this transaction.')
       return null
     }
 
@@ -36,7 +37,7 @@ export class WalletDetails {
     const date = new Date(transaction!.blockTime! * 1000)
 
     const timeAgo = formatDistanceToNow(date, { addSuffix: true })
-    console.log('LAST TX DATE:', timeAgo)
+    logger.info('LAST TX DATE:', timeAgo)
     return timeAgo
   }
 
@@ -48,7 +49,7 @@ export class WalletDetails {
 
       return data.data
     } catch (error) {
-      console.log('GMGN_API_ERROR', error)
+      logger.info('GMGN_API_ERROR', error)
       return
     }
   }

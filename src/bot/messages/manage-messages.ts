@@ -1,4 +1,3 @@
-import { MAX_FREE_WALLETS } from '../../constants/pricing'
 import { WalletDetails } from '../../lib/wallet-details'
 import { UserWallet } from '../../types/prisma-types'
 

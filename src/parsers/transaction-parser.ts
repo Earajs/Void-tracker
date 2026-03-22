@@ -5,6 +5,7 @@ import { FormatNumbers } from '../lib/format-numbers'
 import { NativeParserInterface, TransferParserInterface } from '../types/general-interfaces'
 import { RpcConnectionManager } from '../providers/solana'
 import { TokenMarketPrice } from '../markets/token-market-price'
+import { logger } from '../lib/logger'
 
 export class TransactionParser {
   private tokenUtils: TokenUtils
@@ -25,7 +26,7 @@ export class TransactionParser {
   ): Promise<NativeParserInterface | undefined> {
     try {
       if (transactionDetails === undefined) {
-        console.log('Transaction not found or invalid.')
+        logger.info('Transaction not found or invalid.')
         return
       }
 
@@ -48,12 +49,12 @@ export class TransactionParser {
 
       // let solPrice: string | undefined = ''
 
-      // console.log('PARSED_TRANSACTION:', transactionDetails)
+      // logger.info('PARSED_TRANSACTION:', transactionDetails)
 
       const accountKeys = transactionDetails[0]?.transaction.message.accountKeys
 
       if (!accountKeys) {
-        console.log('Account keys not found in transaction details.', transactionDetails)
+        logger.info('Account keys not found in transaction details.', transactionDetails)
         return
       }
 
@@ -83,13 +84,13 @@ export class TransactionParser {
         })
       }
 
-      // console.log('transaction', transactions)
+      // logger.info('transaction', transactions)
 
       const nativeBalance = this.tokenUtils.calculateNativeBalanceChanges(transactionDetails)
-      // console.log('native balance', nativeBalance)
+      // logger.info('native balance', nativeBalance)
 
       if (!preBalances || !postBalances) {
-        console.log('No balance information available')
+        logger.info('No balance information available')
         return
       }
 
@@ -139,12 +140,12 @@ export class TransactionParser {
           : transactions[transactions.length - 1]
 
       if (!raydiumTransfer && swap !== 'pumpfun_amm') {
-        console.log('NO RAYDIUM TRANSFER')
+        logger.info('NO RAYDIUM TRANSFER')
         return
       }
 
       if (swap === 'pumpfun_amm' && transactions.length < 2) {
-        console.log('NO PUMP AMM TRANSFER')
+        logger.info('NO PUMP AMM TRANSFER')
         return
       }
 
@@ -162,7 +163,7 @@ export class TransactionParser {
           tokenOutMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenInMint === null) {
-            console.log('NO TOKEN IN MINT')
+            logger.info('NO TOKEN IN MINT')
             return
           }
 
@@ -217,7 +218,7 @@ export class TransactionParser {
           swappedTokenMc: tokenMc,
           swappedTokenPrice: tokenPrice,
           solPrice: solPriceUsd || '',
-          currenHoldingPercentage: currentHoldingPercentage,
+          currentHoldingPercentage: currentHoldingPercentage,
           currentHoldingPrice: currentHoldingPrice,
           isNew: isNew,
           tokenTransfers: {
@@ -238,7 +239,7 @@ export class TransactionParser {
           tokenInMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenOutMint === null) {
-            console.log('NO TOKEN OUT MINT')
+            logger.info('NO TOKEN OUT MINT')
             return
           }
 
@@ -251,7 +252,7 @@ export class TransactionParser {
           tokenOutMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenInMint === null) {
-            console.log('NO TOKEN IN MINT')
+            logger.info('NO TOKEN IN MINT')
             return
           }
 
@@ -276,7 +277,7 @@ export class TransactionParser {
         const swapDescription = `${owner} swapped ${amountOut} ${tokenOut} for ${amountIn} ${tokenIn}`
 
         // get the token price and market cap for raydium
-        if (transactions.length[0]?.info?.amount !== transactions[1]?.info?.amount) {
+        if (transactions[0]?.info?.amount !== transactions[1]?.info?.amount) {
           const tokenPrice = await this.tokenMarketPrice.getTokenPriceRaydium(
             transactions,
             nativeBalance?.type as 'buy' | 'sell',
@@ -311,7 +312,7 @@ export class TransactionParser {
           swappedTokenMc: tokenMc,
           swappedTokenPrice: raydiumTokenPrice,
           solPrice: solPriceUsd || '',
-          currenHoldingPercentage: currentHoldingPercentage,
+          currentHoldingPercentage: currentHoldingPercentage,
           currentHoldingPrice: currentHoldingPrice,
           isNew: isNew,
           tokenTransfers: {
@@ -332,7 +333,7 @@ export class TransactionParser {
           tokenInMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenOutMint === null) {
-            console.log('NO TOKEN OUT MINT')
+            logger.info('NO TOKEN OUT MINT')
             return
           }
 
@@ -345,7 +346,7 @@ export class TransactionParser {
           tokenInMint = await this.tokenUtils.getTokenMintAddressWithFallback(transactions)
 
           if (tokenInMint === null) {
-            console.log('NO TOKEN IN MINT')
+            logger.info('NO TOKEN IN MINT')
             return
           }
 
@@ -362,7 +363,7 @@ export class TransactionParser {
         amountOut = nativeBalance?.type === 'sell' ? formattedAmount : totalSolSwapped.toFixed(2).toString()
         amountIn = nativeBalance?.type === 'sell' ? totalSolSwapped.toFixed(2).toString() : formattedAmount
 
-        // console.log('OWNER', signerAccountAddress)
+        // logger.info('OWNER', signerAccountAddress)
         const swapDescription = `${owner} swapped ${amountOut} ${tokenOut} for ${amountIn} ${tokenIn}`
 
         let tokenMc: number | null | undefined = null
@@ -371,7 +372,7 @@ export class TransactionParser {
         const tokenToMc = tokenInMint === 'So11111111111111111111111111111111111111112' ? tokenOutMint : tokenInMint
 
         const tokenPrice = await this.tokenMarketPrice.getTokenPricePumpFun(tokenToMc, solPriceUsd)
-        // console.log('TOKEN PRICE:', tokenPrice)
+        // logger.info('TOKEN PRICE:', tokenPrice)
         if (tokenPrice) {
           const { tokenMarketCap, supplyAmount } = await this.tokenMarketPrice.getTokenMktCap(
             tokenPrice,
@@ -397,7 +398,7 @@ export class TransactionParser {
           swappedTokenPrice: tokenPrice,
           solPrice: solPriceUsd || '',
           isNew: isNew,
-          currenHoldingPercentage: currentHoldingPercentage,
+          currentHoldingPercentage: currentHoldingPercentage,
           currentHoldingPrice: currentHoldingPrice,
           tokenTransfers: {
             tokenInSymbol: tokenIn,
@@ -410,7 +411,7 @@ export class TransactionParser {
         }
       }
     } catch (error) {
-      console.log('TRANSACTION_PARSER_ERROR', error)
+      logger.info('TRANSACTION_PARSER_ERROR', error)
       return
     }
   }
@@ -459,7 +460,7 @@ export class TransactionParser {
         signature: this.transactionSignature,
       }
     } catch {
-      console.log('PARSE_TRANSFERS_ERROR')
+      logger.info('PARSE_TRANSFERS_ERROR')
       return
     }
   }

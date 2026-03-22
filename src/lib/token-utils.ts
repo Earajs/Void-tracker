@@ -11,6 +11,7 @@ import dotenv from 'dotenv'
 import { RpcConnectionManager } from '../providers/solana'
 import { FormatNumbers } from './format-numbers'
 import { ParsedTokenInfo } from '../types/general-interfaces'
+import { logger } from '../lib/logger'
 
 dotenv.config()
 
@@ -24,7 +25,7 @@ export class TokenUtils {
       const accountInfo = await getAccount(this.connection, tokenPublicKey)
       return accountInfo.mint.toBase58()
     } catch (error) {
-      console.log(`Error fetching mint address for token ${tokenAddress}:`, error)
+      logger.info(`Error fetching mint address for token ${tokenAddress}:`, error)
       return null
     }
   }
@@ -47,7 +48,7 @@ export class TokenUtils {
     const meta = transactionDetails[0] && transactionDetails[0].meta
 
     if (!meta) {
-      console.log('No meta information available')
+      logger.info('No meta information available')
       return
     }
 
@@ -55,7 +56,7 @@ export class TokenUtils {
     const postBalances = meta.postBalances
 
     if (!preBalances || !postBalances) {
-      console.log('No balance information available')
+      logger.info('No balance information available')
       return
     }
 
@@ -79,18 +80,18 @@ export class TokenUtils {
 
     if (balanceChanges.length > 0) {
       const firstChange = balanceChanges[0]
-      // console.log(`Account Index ${firstChange.accountIndex} native balance change:`);
-      // console.log(`Pre Balance: ${firstChange.preBalance} SOL`);
-      // console.log(`Post Balance: ${firstChange.postBalance} SOL`);
-      // console.log(`Change: ${firstChange.change} SOL`);
-      // console.log('-----------------------------------');
+      // logger.info(`Account Index ${firstChange.accountIndex} native balance change:`);
+      // logger.info(`Pre Balance: ${firstChange.preBalance} SOL`);
+      // logger.info(`Post Balance: ${firstChange.postBalance} SOL`);
+      // logger.info(`Change: ${firstChange.change} SOL`);
+      // logger.info('-----------------------------------');
       const type = firstChange!.change > 0 ? 'sell' : 'buy'
       return {
         type,
         balanceChange: firstChange!.change,
       }
     } else {
-      console.log('No balance changes found')
+      logger.info('No balance changes found')
       return {
         type: '',
         balanceChange: '',
@@ -106,7 +107,7 @@ export class TokenUtils {
     const tokenContent = await Metadata.fromAccountAddress(this.connection, tokenmetaPubkey)
 
     const token = tokenContent.pretty()
-    //  console.log('TOKEN', token)
+    //  logger.info('TOKEN', token)
 
     return token
   }
@@ -121,7 +122,7 @@ export class TokenUtils {
 
       return String(solanaPrice)
     } catch (error) {
-      console.log('GET_SOL_PRICE_ERROR')
+      logger.info('GET_SOL_PRICE_ERROR')
       return
     }
   }
@@ -133,7 +134,7 @@ export class TokenUtils {
       const accountInfo = await RpcConnectionManager.getRandomConnection().getAccountInfo(id)
 
       if (accountInfo === null) {
-        console.log('get pool info error')
+        logger.info('get pool info error')
         return
       }
 
@@ -145,11 +146,11 @@ export class TokenUtils {
         poolData.mintDecimalsB,
       ).toFixed(2)
 
-      // console.log('current price -> ', solPrice)
+      // logger.info('current price -> ', solPrice)
 
       return solPrice
     } catch (error) {
-      console.log('FETCH_SOL_PRICE_ERROR')
+      logger.info('FETCH_SOL_PRICE_ERROR')
       return
     }
   }
@@ -179,7 +180,7 @@ export class TokenUtils {
         percentage: fixedPercentage,
       }
     } catch (error) {
-      console.log('Error fetching token holdings, wallet:', walletAddress)
+      logger.info('Error fetching token holdings, wallet:', walletAddress)
 
       return { balance: '0', percentage: '0' }
     }

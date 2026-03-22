@@ -1,5 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api'
 import dotenv from 'dotenv'
+import { logger } from '../lib/logger'
 
 dotenv.config()
 
@@ -16,10 +17,10 @@ export const bot = (() => {
     instance
       .setWebHook(WEBHOOK_URL)
       .then(() => {
-        console.log(`Webhook set to ${WEBHOOK_URL}`)
+        logger.info(`Webhook set to ${WEBHOOK_URL}`)
       })
       .catch((error) => {
-        console.error('Error setting webhook:', error)
+        logger.error('Error setting webhook:', error)
       })
 
     return instance

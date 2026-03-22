@@ -2,6 +2,7 @@ import axios from 'axios'
 import { PumpDetail } from '../types/gmgn-ai-types'
 import { TokenInfoPump } from '../types/pumpfun-types'
 import { HeliusTransaction } from '../types/helius-types'
+import { logger } from '../lib/logger'
 
 // this class is no longer used in this project but some of these apis can be useful
 export class ApiRequests {
@@ -18,7 +19,7 @@ export class ApiRequests {
 
       return
     } catch (error) {
-      console.log('GMGN_API_ERROR', error)
+      logger.info('GMGN_API_ERROR', error)
       return
     }
   }
@@ -44,11 +45,11 @@ export class ApiRequests {
       if (response.status === 200) {
         return response.data
       } else {
-        console.error('Failed to retrieve coin data:', response.status)
+        logger.error('Failed to retrieve coin data:', response.status)
         return
       }
     } catch (error) {
-      console.error('Error fetching coin data:', error)
+      logger.error('Error fetching coin data:', error)
       return
     }
   }
@@ -57,7 +58,7 @@ export class ApiRequests {
     transactionSignature: string,
   ): Promise<{ message: string; type: 'buy' | 'sell' } | undefined> {
     const apiUrl = `https://api.helius.xyz/v0/transactions/?api-key=${process.env.HELIUS_API_KEY}`
-    console.log('Parsing Transaction:', transactionSignature)
+    logger.info('Parsing Transaction:', transactionSignature)
 
     try {
       const response = await fetch(apiUrl, {
@@ -75,7 +76,7 @@ export class ApiRequests {
       }
 
       const transactions = (await response.json()) as HeliusTransaction[]
-      console.log('Received transactions:', transactions)
+      logger.info('Received transactions:', transactions)
       const type: 'buy' | 'sell' = transactions[0]!.accountData[0]!.nativeBalanceChange > 0 ? 'sell' : 'buy'
 
       return {
@@ -83,7 +84,7 @@ export class ApiRequests {
         type,
       }
     } catch (error) {
-      console.error('Error parsing transaction with Helius:', error)
+      logger.error('Error parsing transaction with Helius:', error)
     }
   }
 }

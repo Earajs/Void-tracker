@@ -7,7 +7,7 @@ import express, { Express } from 'express'
 import { DeleteCommand } from './bot/commands/delete-command'
 import { TrackWallets } from './lib/track-wallets'
 import { CronJobs } from './lib/cron-jobs'
-import { ASCII_TEXT } from './constants/handi-cat'
+import { ASCII_TEXT } from './constants/bot-config'
 import chalk from 'chalk'
 import gradient from 'gradient-string'
 import { GroupsCommand } from './bot/commands/groups-command'
@@ -15,6 +15,8 @@ import { HelpCommand } from './bot/commands/help-command'
 import { ManageCommand } from './bot/commands/manage-command'
 import { UpgradePlanCommand } from './bot/commands/upgrade-plan-command'
 import { AdminCommand } from './bot/commands/admin-command'
+import { planConfigService } from './services/plan-config-service'
+import { logger } from './lib/logger'
 
 dotenv.config()
 
@@ -63,7 +65,7 @@ class Main {
       try {
         res.status(200).send('Hello world')
       } catch (error) {
-        console.error('Default route error', error)
+        logger.error('Default route error', error)
         res.status(500).send('Error processing default route')
       }
     })
@@ -73,7 +75,7 @@ class Main {
 
         res.status(200).send('Update received')
       } catch (error) {
-        console.log('Error processing update:', error)
+        logger.info('Error processing update:', error)
         res.status(500).send('Error processing update')
       }
     })
@@ -81,13 +83,15 @@ class Main {
 
   private startServer(): void {
     this.app.listen(PORT, () =>
-      console.log(`${chalk.bold.white.bgMagenta(`Server running on http://localhost:${PORT}`)}`),
+      logger.info(`${chalk.bold.white.bgMagenta(`Server running on http://localhost:${PORT}`)}`),
     )
   }
 
   public async init(): Promise<void> {
     const gradientText = gradient.retro
-    console.log(gradientText(ASCII_TEXT))
+    logger.info(gradientText(ASCII_TEXT))
+
+    await planConfigService.initialize()
 
     // bot
     this.callbackQueryHandler.call()
@@ -100,6 +104,8 @@ class Main {
     this.helpCommand.groupHelpCommandHandler()
     this.helpCommand.notifyHelpCommandHander()
     this.adminCommand.banWalletCommandHandler()
+    this.adminCommand.grantPremiumCommandHandler()
+    this.adminCommand.setLimitCommandHandler()
 
     // cron jobs
     await this.cronJobs.monthlySubscriptionFee()
