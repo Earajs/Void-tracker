@@ -191,9 +191,9 @@ export class WatchTransaction extends EventEmitter {
         if (!user) return
 
         const prefs = user.user
-        if (txType === 'defi_buy' && !prefs.notifyBuys) return
-        if (txType === 'defi_sell' && !prefs.notifySells) return
-        if (txType === 'transfer' && !prefs.notifyTransfers) return
+        if (txType === 'defi_buy' && prefs.notifyBuys === false) return
+        if (txType === 'defi_sell' && prefs.notifySells === false) return
+        if (txType === 'transfer' && prefs.notifyTransfers === false) return
 
         try {
           await sendMessageFn(sendMessageHandler, parsed, user.userId)

@@ -140,12 +140,12 @@ export class TransactionParser {
           : transactions[transactions.length - 1]
 
       if (!raydiumTransfer && swap !== 'pumpfun_amm') {
-        logger.info('NO RAYDIUM TRANSFER')
+        logger.warn('Raydium transfer not found, skipping transaction')
         return
       }
 
       if (swap === 'pumpfun_amm' && transactions.length < 2) {
-        logger.info('NO PUMP AMM TRANSFER')
+        logger.warn('PumpFun AMM transfer incomplete, skipping')
         return
       }
 
@@ -163,7 +163,7 @@ export class TransactionParser {
           tokenOutMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenInMint === null) {
-            logger.info('NO TOKEN IN MINT')
+            logger.warn('NO TOKEN IN MINT')
             return
           }
 
@@ -239,7 +239,7 @@ export class TransactionParser {
           tokenInMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenOutMint === null) {
-            logger.info('NO TOKEN OUT MINT')
+            logger.warn('NO TOKEN OUT MINT')
             return
           }
 
@@ -252,7 +252,7 @@ export class TransactionParser {
           tokenOutMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenInMint === null) {
-            logger.info('NO TOKEN IN MINT')
+            logger.warn('NO TOKEN IN MINT')
             return
           }
 
@@ -333,7 +333,7 @@ export class TransactionParser {
           tokenInMint = 'So11111111111111111111111111111111111111112'
 
           if (tokenOutMint === null) {
-            logger.info('NO TOKEN OUT MINT')
+            logger.warn('NO TOKEN OUT MINT')
             return
           }
 
@@ -346,7 +346,7 @@ export class TransactionParser {
           tokenInMint = await this.tokenUtils.getTokenMintAddressWithFallback(transactions)
 
           if (tokenInMint === null) {
-            logger.info('NO TOKEN IN MINT')
+            logger.warn('NO TOKEN IN MINT')
             return
           }
 
