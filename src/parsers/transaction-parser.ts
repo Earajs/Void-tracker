@@ -430,18 +430,23 @@ export class TransactionParser {
       // if length is more than 1 it was probably a token transfer or some stuff idk
       if (transactions.length < 1 || transactions.length > 1) return
 
-      const amount = Number.isNaN(transactions[0].info.lamports / 1e9) ? 0 : transactions[0].info.lamports / 1e9
+      const source = transactions[0].info?.source
+      const destination = transactions[0].info?.destination
+      const lamports = transactions[0].info?.lamports
 
-      const description = `${transactions[0].info.source} transferred ${transactions[0].info.lamports / 1e9} SOL to ${transactions[0].info.destination}`
-      const solAmount = transactions[0].info.lamports / 1e9
+      // Skip if any required fields are missing
+      if (!source || !destination || !lamports || typeof lamports !== 'number') return
+
+      const solAmount = lamports / 1e9
+      const description = `${source} transferred ${solAmount} SOL to ${destination}`
 
       return {
         owner: walletAddress,
         description,
-        fromAddress: transactions[0].info.source ?? 'Unknown',
-        toAddress: transactions[0].info.destination ?? 'Unknown',
-        lamportsAmount: transactions[0].info.lamports ?? 0,
-        solAmount: solAmount ?? 0,
+        fromAddress: source,
+        toAddress: destination,
+        lamportsAmount: lamports,
+        solAmount: solAmount,
         solPrice: solPriceUsd ?? '0',
         signature: this.transactionSignature,
       }
