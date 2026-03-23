@@ -92,6 +92,7 @@ export class WatchTransaction extends EventEmitter {
                 logger.info(parsed.description)
                 const txType =
                   parsed.type === 'buy' ? 'defi_buy' : parsed.type === 'sell' ? 'defi_sell' : 'defi_unknown'
+                logger.info(`Sending ${txType} notification to users for wallet ${walletAddress}`)
                 await this.sendMessageToUsers(wallet, parsed, txType, (handler, parsedData, userId) =>
                   handler.sendTransactionMessage(parsedData, userId),
                 )
@@ -182,6 +183,8 @@ export class WatchTransaction extends EventEmitter {
       activeUsers.find((user) => user.userId === userId),
     )
 
+    logger.info(`Found ${uniqueActiveUsers.length} active users to notify for transaction type ${txType}`)
+
     const limit = pLimit(20)
 
     const tasks = uniqueActiveUsers.map((user) =>
@@ -189,12 +192,23 @@ export class WatchTransaction extends EventEmitter {
         if (!user) return
 
         const prefs = user.user
-        if (txType === 'defi_buy' && prefs.notifyBuys === false) return
-        if (txType === 'defi_sell' && prefs.notifySells === false) return
-        if (txType === 'transfer' && prefs.notifyTransfers === false) return
+        if (txType === 'defi_buy' && prefs.notifyBuys === false) {
+          logger.info(`Skipping notification for user ${user.userId} - notifyBuys is false`)
+          return
+        }
+        if (txType === 'defi_sell' && prefs.notifySells === false) {
+          logger.info(`Skipping notification for user ${user.userId} - notifySells is false`)
+          return
+        }
+        if (txType === 'transfer' && prefs.notifyTransfers === false) {
+          logger.info(`Skipping notification for user ${user.userId} - notifyTransfers is false`)
+          return
+        }
 
+        logger.info(`Sending notification to user ${user.userId} for ${txType}`)
         try {
           await sendMessageFn(sendMessageHandler, parsed, user.userId)
+          logger.info(`Notification sent successfully to user ${user.userId}`)
         } catch (error) {
           logger.error(`SEND_MESSAGE_ERROR user=${user.userId}`, error)
         }
