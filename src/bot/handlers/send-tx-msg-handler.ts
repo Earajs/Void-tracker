@@ -29,28 +29,20 @@ export class SendTransactionMsgHandler {
     }
 
     try {
-      if (message.platform === 'raydium' || message.platform === 'jupiter' || message.platform === 'pumpfun_amm') {
+      if (
+        message.platform === 'raydium' ||
+        message.platform === 'jupiter' ||
+        message.platform === 'pumpfun_amm' ||
+        message.platform === 'pumpfun'
+      ) {
         let tokenMarketCap = message.swappedTokenMc
 
-        // Check if the market cap is below 1000 and adjust if necessary
-        if (tokenMarketCap && tokenMarketCap < 1000) {
+        if (tokenMarketCap && tokenMarketCap < 1000 && message.platform !== 'pumpfun') {
           logger.info('MC ADJUSTED')
           tokenMarketCap *= 1000
         }
 
         const formattedMarketCap = tokenMarketCap ? FormatNumbers.formatPrice(tokenMarketCap) : undefined
-
-        const messageText = TxMessages.defiTxMessage(message, formattedMarketCap, walletName?.name)
-        return this.bot.sendMessage(chatId, messageText, {
-          parse_mode: 'HTML',
-          disable_web_page_preview: true,
-          reply_markup: TX_SUB_MENU,
-        })
-      } else if (message.platform === 'pumpfun') {
-        let tokenMarketCap = message.swappedTokenMc
-
-        const formattedMarketCap = tokenMarketCap ? FormatNumbers.formatPrice(tokenMarketCap) : undefined
-
         const messageText = TxMessages.defiTxMessage(message, formattedMarketCap, walletName?.name)
         return this.bot.sendMessage(chatId, messageText, {
           parse_mode: 'HTML',

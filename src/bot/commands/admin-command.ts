@@ -38,8 +38,6 @@ export class AdminCommand {
       const isAdmin = BotMiddleware.isUserBotAdmin(userId)
       if (!isAdmin) return
 
-      this.bot.removeAllListeners('message')
-
       this.bot.sendMessage(chatId, `Enter the wallet <b>Public Key</b> you want to <b>Ban</b>`, {
         reply_markup: SUB_MENU,
         parse_mode: 'HTML',
@@ -49,6 +47,7 @@ export class AdminCommand {
       const listener = async (responseMsg: TelegramBot.Message) => {
         if (responseMsg.text?.startsWith('/')) {
           adminExpectingBannedWallet[Number(userId)] = false
+          this.bot.removeListener('message', listener)
           return
         }
 
@@ -93,7 +92,7 @@ export class AdminCommand {
         adminExpectingBannedWallet[Number(userId)] = false
       }
 
-      this.bot.once('message', listener)
+      this.bot.on('message', listener)
     })
   }
 
@@ -118,6 +117,7 @@ export class AdminCommand {
         if (responseMsg.text?.startsWith('/')) {
           adminExpectingGrantUserId[chatId] = false
           delete adminGrantUserId[chatId]
+          this.bot.removeListener('message', listener)
           return
         }
 
@@ -143,7 +143,7 @@ export class AdminCommand {
         this.bot.removeListener('message', listener)
       }
 
-      this.bot.once('message', listener)
+      this.bot.on('message', listener)
     })
   }
 
@@ -250,6 +250,7 @@ Select a plan to edit:
         adminExpectingSetlimitValue[chatId] = false
         delete adminSetlimitPlan[chatId]
         delete adminSetlimitField[chatId]
+        this.bot.removeListener('message', listener)
         return
       }
 
@@ -280,6 +281,6 @@ Select a plan to edit:
       this.bot.removeListener('message', listener)
     }
 
-    this.bot.once('message', listener)
+    this.bot.on('message', listener)
   }
 }

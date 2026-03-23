@@ -128,6 +128,8 @@ export class GroupsCommand {
       const groupId = responseMsg.text
 
       if (groupId?.startsWith('/') || !groupId) {
+        userExpectingGroupId[chatId] = false
+        this.bot.removeListener('message', listener)
         return
       }
 
@@ -149,6 +151,6 @@ export class GroupsCommand {
       userExpectingGroupId[chatId] = false
     }
 
-    this.bot.once('message', listener)
+    this.bot.on('message', listener)
   }
 }

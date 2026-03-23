@@ -1,10 +1,8 @@
-import { Connection, PublicKey } from '@solana/web3.js'
-
 import { SubscriptionPlan } from '@prisma/client'
 
 import { RateLimitMessages } from '../bot/messages/rate-limit-messages'
 import { TxPerSecondCapInterface } from '../types/general-interfaces'
-import { MAX_5_MIN_TXS_ALLOWED, MAX_TPS_ALLOWED, MAX_TPS_FOR_BAN, WALLET_SLEEP_TIME } from '../constants/bot-config'
+import { MAX_TPS_ALLOWED, MAX_TPS_FOR_BAN, WALLET_SLEEP_TIME } from '../constants/bot-config'
 import { PrismaWalletRepository } from '../repositories/prisma/wallet'
 import { BANNED_WALLETS } from '../constants/banned-wallets'
 import { RpcConnectionManager } from '../providers/solana'
@@ -20,26 +18,6 @@ export class RateLimit {
     this.resumeTimeouts = new Map()
   }
 
-  public async last5MinutesTxs(walletAddress: string) {
-    const currentTime = Date.now()
-
-    const fiveMinutesAgo = currentTime - 5 * 60 * 1000
-
-    const signatures = await RpcConnectionManager.getRandomConnection().getSignaturesForAddress(
-      new PublicKey(walletAddress),
-      {
-        limit: MAX_5_MIN_TXS_ALLOWED,
-      },
-    )
-
-    const recentTransactions = signatures.filter((signatureInfo) => {
-      const transactionTime = signatureInfo.blockTime! * 1000
-      return transactionTime >= fiveMinutesAgo
-    })
-
-    return recentTransactions.length
-  }
-
   public async txPerSecondCap({ bot, excludedWallets, wallet, walletData }: TxPerSecondCapInterface): Promise<boolean> {
     walletData.count++
     const elapsedTime = (Date.now() - walletData.startTime) / 1000
@@ -53,7 +31,7 @@ export class RateLimit {
         logger.info(`Wallet ${wallet.address} has been banned.`)
         BANNED_WALLETS.add(wallet.address)
         for (const user of wallet.userWallets) {
-          this.prismaWalletRepository.pauseUserWalletSpam(wallet.id, 'BANNED')
+          await this.prismaWalletRepository.pauseUserWalletSpam(wallet.id, 'BANNED')
           bot.sendMessage(user.userId, RateLimitMessages.walletWasBanned(wallet.address), { parse_mode: 'HTML' })
         }
       }
@@ -71,7 +49,7 @@ export class RateLimit {
         const walletAddress = wallet.address
 
         for (const user of userWalletsSnapshot) {
-          this.prismaWalletRepository.pauseUserWalletSpam(walletId, 'SPAM_PAUSED')
+          await this.prismaWalletRepository.pauseUserWalletSpam(walletId, 'SPAM_PAUSED')
           bot.sendMessage(user.userId, RateLimitMessages.walletWasPaused(walletAddress), { parse_mode: 'HTML' })
         }
 

@@ -39,17 +39,10 @@ export class TransactionParser {
       let currentHoldingPrice = ''
       let currentHoldingPercentage = ''
 
-      // TODO!
-      let isNew = false
-
       const transactions: any = []
 
       let tokenInMint: string = ''
       let tokenOutMint: string = ''
-
-      // let solPrice: string | undefined = ''
-
-      // logger.info('PARSED_TRANSACTION:', transactionDetails)
 
       const accountKeys = transactionDetails[0]?.transaction.message.accountKeys
 
@@ -84,17 +77,12 @@ export class TransactionParser {
         })
       }
 
-      // logger.info('transaction', transactions)
-
-      const nativeBalance = this.tokenUtils.calculateNativeBalanceChanges(transactionDetails)
-      // logger.info('native balance', nativeBalance)
-
       if (!preBalances || !postBalances) {
         logger.info('No balance information available')
         return
       }
 
-      // we have to do this for pumpfun transactions since swap info is not available in its instructions
+      const nativeBalance = this.tokenUtils.calculateNativeBalanceChanges(transactionDetails)
       let totalSolSwapped = 0
 
       if (swap === 'pumpfun' || swap === 'mint_pumpfun') {
@@ -220,7 +208,7 @@ export class TransactionParser {
           solPrice: solPriceUsd || '',
           currentHoldingPercentage: currentHoldingPercentage,
           currentHoldingPrice: currentHoldingPrice,
-          isNew: isNew,
+          isNew: false,
           tokenTransfers: {
             tokenInSymbol: tokenIn,
             tokenInMint: tokenInMint,
@@ -314,7 +302,7 @@ export class TransactionParser {
           solPrice: solPriceUsd || '',
           currentHoldingPercentage: currentHoldingPercentage,
           currentHoldingPrice: currentHoldingPrice,
-          isNew: isNew,
+          isNew: false,
           tokenTransfers: {
             tokenInSymbol: tokenIn,
             tokenInMint: tokenInMint,
@@ -363,7 +351,6 @@ export class TransactionParser {
         amountOut = nativeBalance?.type === 'sell' ? formattedAmount : totalSolSwapped.toFixed(2).toString()
         amountIn = nativeBalance?.type === 'sell' ? totalSolSwapped.toFixed(2).toString() : formattedAmount
 
-        // logger.info('OWNER', signerAccountAddress)
         const swapDescription = `${owner} swapped ${amountOut} ${tokenOut} for ${amountIn} ${tokenIn}`
 
         let tokenMc: number | null | undefined = null
@@ -372,7 +359,6 @@ export class TransactionParser {
         const tokenToMc = tokenInMint === 'So11111111111111111111111111111111111111112' ? tokenOutMint : tokenInMint
 
         const tokenPrice = await this.tokenMarketPrice.getTokenPricePumpFun(tokenToMc, solPriceUsd)
-        // logger.info('TOKEN PRICE:', tokenPrice)
         if (tokenPrice) {
           const { tokenMarketCap, supplyAmount } = await this.tokenMarketPrice.getTokenMktCap(
             tokenPrice,
@@ -397,7 +383,7 @@ export class TransactionParser {
           swappedTokenMc: tokenMc,
           swappedTokenPrice: tokenPrice,
           solPrice: solPriceUsd || '',
-          isNew: isNew,
+          isNew: false,
           currentHoldingPercentage: currentHoldingPercentage,
           currentHoldingPrice: currentHoldingPrice,
           tokenTransfers: {

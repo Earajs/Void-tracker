@@ -261,7 +261,7 @@ export class CallbackQueryHandler {
             await this.adminCommand.setLimitByField(chatId, plan, 'feeSol')
             break
           }
-          case 'back_to_main_menu':
+          case 'back_to_main_menu': {
             const user = await this.prismaUserRepository.getById(userId)
             const messageText = GeneralMessages.startMessage(user)
 
@@ -284,6 +284,7 @@ export class CallbackQueryHandler {
               parse_mode: 'HTML',
             })
             break
+          }
           default:
             break
         }

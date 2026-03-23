@@ -47,7 +47,7 @@ export class WatchTransaction extends EventEmitter {
 
         const subscriptionId = RpcConnectionManager.logConnection.onLogs(
           publicKey,
-          async (logs, ctx) => {
+          async (logs) => {
             try {
               if (WalletPool.bannedWallets.has(walletAddress)) return
 
@@ -151,9 +151,7 @@ export class WatchTransaction extends EventEmitter {
     if (uniqueUserIds.length === 0) return
 
     const pausedUserIds = await this.prismaUserRepository.getPausedUsers(uniqueUserIds)
-    if (pausedUserIds) {
-      this.pausedUsersCache = { userIds: new Set(pausedUserIds), timestamp: Date.now() }
-    }
+    this.pausedUsersCache = { userIds: new Set(pausedUserIds), timestamp: Date.now() }
   }
 
   private isPausedUsersCacheStale(): boolean {

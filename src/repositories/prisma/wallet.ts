@@ -18,19 +18,13 @@ export class PrismaWalletRepository {
       })
 
       if (existingWallet) {
-        // Check if the user is already linked to this wallet
         const userWalletLink = await prisma.userWallet.findFirst({
-          where: {
-            userId,
-            walletId: existingWallet.id,
-          },
-          select: {
-            userId: true,
-          },
+          where: { userId, walletId: existingWallet.id },
+          select: { userId: true },
         })
 
         if (!userWalletLink) {
-          const linkUserToWallet = await prisma.userWallet.create({
+          await prisma.userWallet.create({
             data: {
               userId,
               walletId: existingWallet.id,
@@ -38,8 +32,6 @@ export class PrismaWalletRepository {
               address: walletAddress,
             },
           })
-
-          return existingWallet
         }
 
         return existingWallet
@@ -67,7 +59,7 @@ export class PrismaWalletRepository {
 
       return newWallet
     } catch (error: any) {
-      logger.info('CREATE_WALLET_ERROR', error)
+      logger.error('CREATE_WALLET_ERROR', error)
     }
   }
 
@@ -114,7 +106,7 @@ export class PrismaWalletRepository {
 
       return deletedWallet
     } catch (error) {
-      logger.info('DELETE_WALLET_ERROR', error)
+      logger.error('DELETE_WALLET_ERROR', error)
     }
   }
 
@@ -216,8 +208,8 @@ export class PrismaWalletRepository {
 
       return walletsWithUsers
     } catch (error: any) {
-      logger.info('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
-      return
+      logger.error('GET_ALL_WALLETS_WITH_USER_IDS_ERROR', error)
+      return []
     }
   }
 
@@ -361,10 +353,6 @@ export class PrismaWalletRepository {
     try {
       const pausedWallet = await prisma.userWallet.updateMany({
         where: {
-          // userId_walletId: {
-          //   userId,
-          //   walletId,
-          // },
           walletId,
         },
         data: {
@@ -378,7 +366,7 @@ export class PrismaWalletRepository {
 
       return pausedWallet
     } catch (error) {
-      logger.info('Error pausing user wallet')
+      logger.error('PAUSE_USER_WALLET_ERROR', error)
       return
     }
   }
@@ -400,21 +388,14 @@ export class PrismaWalletRepository {
       if (walletToResume?.status === 'BANNED') {
         return false
       }
-      const resumedWallet = await prisma.userWallet.update({
-        where: {
-          userId_walletId: {
-            userId,
-            walletId,
-          },
-        },
-        data: {
-          status: 'ACTIVE',
-        },
+      await prisma.userWallet.update({
+        where: { userId_walletId: { userId, walletId } },
+        data: { status: 'ACTIVE' },
       })
 
       return true
     } catch (error) {
-      logger.info('Error resuming wallet')
+      logger.error('RESUME_USER_WALLET_ERROR', error)
       return
     }
   }

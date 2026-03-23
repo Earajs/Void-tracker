@@ -80,11 +80,6 @@ export class TokenUtils {
 
     if (balanceChanges.length > 0) {
       const firstChange = balanceChanges[0]
-      // logger.info(`Account Index ${firstChange.accountIndex} native balance change:`);
-      // logger.info(`Pre Balance: ${firstChange.preBalance} SOL`);
-      // logger.info(`Post Balance: ${firstChange.postBalance} SOL`);
-      // logger.info(`Change: ${firstChange.change} SOL`);
-      // logger.info('-----------------------------------');
       const type = firstChange!.change > 0 ? 'sell' : 'buy'
       return {
         type,
@@ -107,7 +102,6 @@ export class TokenUtils {
     const tokenContent = await Metadata.fromAccountAddress(this.connection, tokenmetaPubkey)
 
     const token = tokenContent.pretty()
-    //  logger.info('TOKEN', token)
 
     return token
   }
@@ -122,7 +116,7 @@ export class TokenUtils {
 
       return String(solanaPrice)
     } catch (error) {
-      logger.info('GET_SOL_PRICE_ERROR')
+      logger.error('GET_SOL_PRICE_ERROR', error)
       return
     }
   }
@@ -146,11 +140,9 @@ export class TokenUtils {
         poolData.mintDecimalsB,
       ).toFixed(2)
 
-      // logger.info('current price -> ', solPrice)
-
       return solPrice
     } catch (error) {
-      logger.info('FETCH_SOL_PRICE_ERROR')
+      logger.error('FETCH_SOL_PRICE_ERROR', error)
       return
     }
   }

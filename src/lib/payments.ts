@@ -66,7 +66,7 @@ export class Payments {
 
         return { success: true, message: PaymentsMessageEnum.PLAN_UPGRADED, subscriptionEnd: parsedDate }
       } catch (error) {
-        logger.info('CHARGE_SUBSCRIPTION_ERROR', error)
+        logger.error('CHARGE_SUBSCRIPTION_ERROR', error)
         return { success: false, message: PaymentsMessageEnum.INTERNAL_ERROR, subscriptionEnd: null }
       }
     }
@@ -120,7 +120,7 @@ export class Payments {
 
         return { success: true, message: PaymentsMessageEnum.PLAN_UPGRADED, subscriptionEnd: parsedDate }
       } catch (error) {
-        logger.info('AUTO_RECHARGE_ERROR', error)
+        logger.error('AUTO_RECHARGE_ERROR', error)
         return { success: false, message: PaymentsMessageEnum.INTERNAL_ERROR, subscriptionEnd: null }
       }
     }
@@ -157,7 +157,7 @@ export class Payments {
 
         return { success: true, message: PaymentsMessageEnum.DONATION_MADE }
       } catch (error) {
-        logger.info('CHARGE_DONATION_ERROR', error)
+        logger.error('CHARGE_DONATION_ERROR', error)
         return { success: false, message: PaymentsMessageEnum.INTERNAL_ERROR }
       }
     }
@@ -195,7 +195,7 @@ export class Payments {
 
         return { success: true, message: PaymentsMessageEnum.TRANSACTION_SUCCESS }
       } catch (error) {
-        logger.info('CHARGE_PROMOTION_ERROR', error)
+        logger.error('CHARGE_PROMOTION_ERROR', error)
         return { success: false, message: PaymentsMessageEnum.INTERNAL_ERROR }
       }
     }
@@ -219,8 +219,7 @@ export class Payments {
   }
 
   private getKeypairFromPrivateKey(encryptedPrivateKey: string): Keypair {
-    const decryptedKey = CryptoUtil.decrypt(encryptedPrivateKey)
-    const secretKey = Buffer.from(decryptedKey, 'base64')
+    const secretKey = Buffer.from(CryptoUtil.decrypt(encryptedPrivateKey), 'base64')
     return Keypair.fromSecretKey(secretKey)
   }
 }

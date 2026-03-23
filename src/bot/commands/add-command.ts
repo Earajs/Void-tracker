@@ -71,6 +71,7 @@ export class AddCommand {
 
         if (text?.startsWith('/')) {
           userExpectingWalletAddress[Number(userId)] = false
+          this.bot.removeListener('message', listener)
           return
         }
 
@@ -86,28 +87,26 @@ export class AddCommand {
 
         const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
 
+        const [planWallets, userWallets] = await Promise.all([
+          this.userPlan.getUserPlanWallets(userId),
+          this.prismaWalletRepository.getUserWallets(userId),
+        ])
+
         for (const entry of walletEntries) {
           const [walletAddress, walletName] = entry.split(' ')
 
           if (BANNED_WALLETS.has(walletAddress)) {
-            return this.bot.sendMessage(chatId, GeneralMessages.botWalletError, {
+            this.bot.sendMessage(chatId, GeneralMessages.botWalletError, {
               parse_mode: 'HTML',
               reply_markup: isGroup ? undefined : SUB_MENU,
             })
+            this.bot.removeListener('message', listener)
+            userExpectingWalletAddress[Number(userId)] = false
+            return
           }
-
-          if (walletAddress.includes('orc') || walletAddress.includes('pump') || walletAddress.includes('Token')) {
-            return this.bot.sendMessage(chatId, GeneralMessages.botWalletError, {
-              parse_mode: 'HTML',
-              reply_markup: isGroup ? undefined : SUB_MENU,
-            })
-          }
-
-          const planWallets = await this.userPlan.getUserPlanWallets(userId)
-          const userWallets = await this.prismaWalletRepository.getUserWallets(userId)
 
           if (userWallets && userWallets.length >= planWallets) {
-            return this.bot.sendMessage(
+            this.bot.sendMessage(
               chatId,
               GeneralMessages.walletLimitMessageError(walletName, walletAddress, planWallets),
               {
@@ -115,6 +114,9 @@ export class AddCommand {
                 reply_markup: isGroup ? undefined : getUpgradePlanSubMenu(),
               },
             )
+            this.bot.removeListener('message', listener)
+            userExpectingWalletAddress[Number(userId)] = false
+            return
           }
 
           if (!base58Regex.test(walletAddress)) {
@@ -147,7 +149,7 @@ export class AddCommand {
         userExpectingWalletAddress[Number(userId)] = false
       }
 
-      this.bot.once('message', listener)
+      this.bot.on('message', listener)
     } catch (error) {
       this.bot.sendMessage(
         message.chat.id,

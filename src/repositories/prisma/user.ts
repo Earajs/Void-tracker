@@ -179,13 +179,9 @@ export class PrismaUserRepository {
 
       const newStatus = currentStatus?.botStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
 
-      const updatedStatus = await prisma.user.update({
-        where: {
-          id: userId,
-        },
-        data: {
-          botStatus: newStatus,
-        },
+      await prisma.user.update({
+        where: { id: userId },
+        data: { botStatus: newStatus },
       })
 
       return { status: 'ok', message: 'status updated', changedStatus: newStatus }
@@ -243,7 +239,7 @@ export class PrismaUserRepository {
     }
   }
 
-  public async getPausedUsers(userIds: string[]) {
+  public async getPausedUsers(userIds: string[]): Promise<string[]> {
     try {
       const pausedUsers = await prisma.user.findMany({
         where: {
@@ -262,7 +258,7 @@ export class PrismaUserRepository {
       return pausedUsers.map((user) => user.id)
     } catch (error) {
       logger.error('GET_PAUSED_USERS_ERROR', error)
-      return
+      return []
     }
   }
 

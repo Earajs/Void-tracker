@@ -41,8 +41,6 @@ export class DeleteCommand {
   }
 
   private delete({ message, isButton }: { message: TelegramBot.Message; isButton: boolean }) {
-    this.bot.removeAllListeners('message')
-
     const deleteMessage = WalletMessages.deleteWalletMessage
     if (isButton) {
       this.bot.editMessageText(deleteMessage, {
@@ -51,7 +49,7 @@ export class DeleteCommand {
         reply_markup: BotMiddleware.isGroup(message.chat.id) ? undefined : SUB_MENU,
         parse_mode: 'HTML',
       })
-    } else if (!isButton) {
+    } else {
       this.bot.sendMessage(message.chat.id, deleteMessage, {
         reply_markup: BotMiddleware.isGroup(message.chat.id) ? undefined : SUB_MENU,
         parse_mode: 'HTML',
@@ -64,6 +62,7 @@ export class DeleteCommand {
     const listener = async (responseMsg: TelegramBot.Message) => {
       if (responseMsg.text?.startsWith('/')) {
         userExpectingWalletAddress[Number(userId)] = false
+        this.bot.removeListener('message', listener)
         return
       }
 
@@ -114,6 +113,6 @@ export class DeleteCommand {
       userExpectingWalletAddress[Number(userId)] = false
     }
 
-    this.bot.once('message', listener)
+    this.bot.on('message', listener)
   }
 }

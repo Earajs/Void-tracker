@@ -45,19 +45,19 @@ export class CronJobs {
           try {
             logger.info(`Charging user with ID: ${user.userId}`)
 
-            const chargeResult = await this.payments.autoReChargeSubscription(user.id, user.plan)
+            const chargeResult = await this.payments.autoReChargeSubscription(user.userId, user.plan)
 
             if (chargeResult.success) {
               logger.info(
                 `Successfully charged user ${user.userId} and updated subscription to next period ending on ${chargeResult.subscriptionEnd}.`,
               )
-              bot.sendMessage(user.id, SubscriptionMessages.planRenewedMessage(chargeResult.subscriptionEnd || ''), {
+              bot.sendMessage(user.userId, SubscriptionMessages.planRenewedMessage(chargeResult.subscriptionEnd || ''), {
                 parse_mode: 'HTML',
               })
             } else {
               logger.info(`Failed to charge user ${user.userId}: ${chargeResult.message}`)
               bot.sendMessage(
-                user.id,
+                user.userId,
                 `
 ⚠️ Oops! We couldn't renew your Void subscription.  
 
@@ -115,12 +115,10 @@ export class CronJobs {
     const now = Date.now()
 
     if (CronJobs.cachedPrice && now - CronJobs.lastFetched < CronJobs.refreshInterval) {
-      // logger.info('Using cached Solana price:', CronJobs.cachedPrice)
       return CronJobs.cachedPrice
     }
 
     try {
-      // logger.info('REFETCHING SOL PRICE')
       let solPrice = await TokenUtils.getSolPriceGecko()
 
       if (!solPrice) {
@@ -146,6 +144,8 @@ export class CronJobs {
   }
 
   public async unsubscribeAllWallets() {
+    // Resets the RPC log connection every minute to recover from stale/dropped WebSocket subscriptions.
+    // All wallets are re-subscribed immediately after the reset.
     cron.schedule('*/1 * * * *', async () => {
       logger.info('Triggering resetLogConnection...')
       RpcConnectionManager.resetLogConnection()

@@ -18,8 +18,6 @@ export class DonateCommand {
   }
 
   public async donateCommandHandler(msg: TelegramBot.Message) {
-    this.bot.removeAllListeners('message')
-
     const user = await this.prismaUserRepository.getUserPlan(String(msg.chat.id))
 
     const userWallet = user?.personalWalletPubKey
@@ -29,6 +27,12 @@ export class DonateCommand {
       if (!userExpectingDonation[msg.chat.id]) return
 
       const text = responseMsg.text
+
+      if (text?.startsWith('/')) {
+        userExpectingDonation[msg.chat.id] = false
+        this.bot.removeListener('message', listener)
+        return
+      }
 
       const isValidNumber = !isNaN(Number(text)) && text?.trim() !== ''
 
@@ -64,7 +68,7 @@ export class DonateCommand {
       this.bot.removeListener('message', listener)
     }
 
-    this.bot.once('message', listener)
+    this.bot.on('message', listener)
 
     const messageText = DonateMessages.donateMessage(userWallet)
 

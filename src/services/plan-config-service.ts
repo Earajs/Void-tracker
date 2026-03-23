@@ -54,18 +54,10 @@ export class PlanConfigService {
   }
 
   public async updateLimit(plan: SubscriptionPlan, field: keyof PlanLimits, value: number): Promise<void> {
-    const updateData: Record<string, number> = {}
-    const dbField = fieldToDbField(field)
-    updateData[dbField] = value
-
     await prisma.planConfig.upsert({
       where: { plan },
-      create: {
-        plan,
-        ...DEFAULT_CONFIG[plan],
-        [dbField]: value,
-      },
-      update: updateData,
+      create: { plan, ...DEFAULT_CONFIG[plan], [field]: value },
+      update: { [field]: value },
     })
 
     const current = this.cache.get(plan) ?? { ...DEFAULT_CONFIG[plan] }
@@ -92,19 +84,6 @@ export class PlanConfigService {
         }),
       ),
     )
-  }
-}
-
-function fieldToDbField(field: keyof PlanLimits): string {
-  switch (field) {
-    case 'maxWallets':
-      return 'maxWallets'
-    case 'maxDailyMessages':
-      return 'maxDailyMessages'
-    case 'maxGroups':
-      return 'maxGroups'
-    case 'feeSol':
-      return 'feeSol'
   }
 }
 

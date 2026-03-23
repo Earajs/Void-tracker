@@ -2,15 +2,14 @@ import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 16
-const AUTH_TAG_LENGTH = 16
 
 export class CryptoUtil {
   private static getKey(): Buffer {
     const key = process.env.ENCRYPTION_KEY
-    if (!key) {
-      throw new Error('ENCRYPTION_KEY environment variable is not set')
+    if (!key || key.length !== 64) {
+      throw new Error('ENCRYPTION_KEY must be 64 hex characters (run: openssl rand -hex 32)')
     }
-    return crypto.scryptSync(key, 'salt', 32)
+    return Buffer.from(key, 'hex')
   }
 
   public static encrypt(plaintext: string): string {

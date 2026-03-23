@@ -75,7 +75,7 @@ class Main {
 
         res.status(200).send('Update received')
       } catch (error) {
-        logger.info('Error processing update:', error)
+        logger.error('Error processing update:', error)
         res.status(500).send('Error processing update')
       }
     })

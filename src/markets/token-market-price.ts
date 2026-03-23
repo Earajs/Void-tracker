@@ -15,47 +15,18 @@ export class TokenMarketPrice {
     solPriceInUsd: number,
   ): Promise<number | undefined> {
     if (type === 'buy') {
-      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.source ?? '')
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.destination ?? '')
-
-      const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
-      const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
-
-      const priceOfSPLTokenInSOL = wrappedSolBalance / 1_000_000_000 / (splTokenBalance / 1_000_000)
-      let priceOfSPLTokenInUSD = priceOfSPLTokenInSOL * solPriceInUsd
-
-      if (priceOfSPLTokenInUSD.toString().includes('e')) {
-        const formattedPrice = priceOfSPLTokenInUSD.toFixed(10)
-
-        // Remove the first three leading zeros after the decimal point
-        const [integerPart, decimalPart] = formattedPrice.split('.')
-        const newDecimalPart = decimalPart!.replace(/^0{3}/, '')
-        priceOfSPLTokenInUSD = parseFloat(`${integerPart}.${newDecimalPart}`)
-      }
-
-      return priceOfSPLTokenInUSD
+      return this.calcTokenPriceUsd(
+        txInstructions[0]!.info.source ?? '',
+        txInstructions[1]!.info.destination ?? '',
+        solPriceInUsd,
+      )
     } else if (type === 'sell') {
-      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.destination ?? '')
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.source ?? '')
-
-      const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
-      const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
-
-      const priceOfSPLTokenInSOL = wrappedSolBalance / 1_000_000_000 / (splTokenBalance / 1_000_000)
-      let priceOfSPLTokenInUSD = priceOfSPLTokenInSOL * solPriceInUsd
-
-      if (priceOfSPLTokenInUSD.toString().includes('e')) {
-        const formattedPrice = priceOfSPLTokenInUSD.toFixed(10)
-
-        // Remove the first three leading zeros after the decimal point
-        const [integerPart, decimalPart] = formattedPrice.split('.')
-        const newDecimalPart = decimalPart!.replace(/^0{3}/, '')
-        priceOfSPLTokenInUSD = parseFloat(`${integerPart}.${newDecimalPart}`)
-      }
-
-      return priceOfSPLTokenInUSD
+      return this.calcTokenPriceUsd(
+        txInstructions[0]!.info.destination ?? '',
+        txInstructions[1]!.info.source ?? '',
+        solPriceInUsd,
+      )
     }
-
     return
   }
 
@@ -65,48 +36,40 @@ export class TokenMarketPrice {
     solPriceInUsd: number,
   ): Promise<number | undefined> {
     if (type === 'buy') {
-      const tokenAccountAddress = new PublicKey(txInstructions[1]!.info.source ?? '')
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[0]!.info.destination ?? '')
-
-      const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
-      const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
-
-      const priceOfSPLTokenInSOL = wrappedSolBalance / 1_000_000_000 / (splTokenBalance / 1_000_000)
-      let priceOfSPLTokenInUSD = priceOfSPLTokenInSOL * solPriceInUsd
-
-      if (priceOfSPLTokenInUSD.toString().includes('e')) {
-        const formattedPrice = priceOfSPLTokenInUSD.toFixed(10)
-
-        // Remove the first three leading zeros after the decimal point
-        const [integerPart, decimalPart] = formattedPrice.split('.')
-        const newDecimalPart = decimalPart!.replace(/^0{3}/, '')
-        priceOfSPLTokenInUSD = parseFloat(`${integerPart}.${newDecimalPart}`)
-      }
-
-      return priceOfSPLTokenInUSD
+      return this.calcTokenPriceUsd(
+        txInstructions[1]!.info.source ?? '',
+        txInstructions[0]!.info.destination ?? '',
+        solPriceInUsd,
+      )
     } else if (type === 'sell') {
-      const tokenAccountAddress = new PublicKey(txInstructions[0]!.info.destination ?? '')
-      const tokenAccountAddressWrappedSol = new PublicKey(txInstructions[1]!.info.source ?? '')
+      return this.calcTokenPriceUsd(
+        txInstructions[0]!.info.destination ?? '',
+        txInstructions[1]!.info.source ?? '',
+        solPriceInUsd,
+      )
+    }
+    return
+  }
 
-      const splTokenBalance: any = await this.getTokenBalance(tokenAccountAddress)
-      const wrappedSolBalance: any = await this.getTokenBalance(tokenAccountAddressWrappedSol)
+  private async calcTokenPriceUsd(
+    splTokenAccount: string,
+    wrappedSolAccount: string,
+    solPriceInUsd: number,
+  ): Promise<number | undefined> {
+    const splTokenBalance: any = await this.getTokenBalance(new PublicKey(splTokenAccount))
+    const wrappedSolBalance: any = await this.getTokenBalance(new PublicKey(wrappedSolAccount))
 
-      const priceOfSPLTokenInSOL = wrappedSolBalance / 1_000_000_000 / (splTokenBalance / 1_000_000)
-      let priceOfSPLTokenInUSD = priceOfSPLTokenInSOL * solPriceInUsd
+    const priceOfSPLTokenInSOL = wrappedSolBalance / 1_000_000_000 / (splTokenBalance / 1_000_000)
+    let priceOfSPLTokenInUSD = priceOfSPLTokenInSOL * solPriceInUsd
 
-      if (priceOfSPLTokenInUSD.toString().includes('e')) {
-        const formattedPrice = priceOfSPLTokenInUSD.toFixed(10)
-
-        // Remove the first three leading zeros after the decimal point
-        const [integerPart, decimalPart] = formattedPrice.split('.')
-        const newDecimalPart = decimalPart!.replace(/^0{3}/, '')
-        priceOfSPLTokenInUSD = parseFloat(`${integerPart}.${newDecimalPart}`)
-      }
-
-      return priceOfSPLTokenInUSD
+    if (priceOfSPLTokenInUSD.toString().includes('e')) {
+      const formattedPrice = priceOfSPLTokenInUSD.toFixed(10)
+      const [integerPart, decimalPart] = formattedPrice.split('.')
+      const newDecimalPart = decimalPart!.replace(/^0{3}/, '')
+      priceOfSPLTokenInUSD = parseFloat(`${integerPart}.${newDecimalPart}`)
     }
 
-    return
+    return priceOfSPLTokenInUSD
   }
 
   public async getTokenPricePumpFun(tokenAddress: string, solPrice: string | undefined): Promise<number | null> {
@@ -162,10 +125,9 @@ export class TokenMarketPrice {
 
       const tokenMarketCap = Number(supplyValue) * tokenPrice
 
-      // logger.info('TOKEN_MARKET_CAP', tokenMarketCap)
       return { tokenMarketCap, supplyAmount: supplyAmount || 0 }
     } catch (error) {
-      logger.info('GET_TOKEN_MKC_ERROR')
+      logger.error('GET_TOKEN_MKC_ERROR', error)
       return { tokenMarketCap: 0, supplyAmount: 0 }
     }
   }
@@ -175,7 +137,7 @@ export class TokenMarketPrice {
       const tokenBalance = await this.connection.getTokenAccountBalance(tokenAccountAddress)
       return tokenBalance.value.amount
     } catch (error) {
-      logger.info('Error fetching token balance:', error)
+      logger.error('GET_TOKEN_BALANCE_ERROR', error)
       return
     }
   }
