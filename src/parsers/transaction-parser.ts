@@ -143,6 +143,10 @@ export class TransactionParser {
           tokenInMint = 'So11111111111111111111111111111111111111112'
 
           const tokenOutInfo = await this.tokenUtils.getParsedTokenInfo(tokenOutMint)
+          if (!tokenOutInfo) {
+            logger.warn(`Failed to get token info for ${tokenOutMint}`)
+            return
+          }
 
           tokenOut = tokenOutInfo.data.symbol.replace(/\x00/g, '')
           tokenIn = 'SOL'
@@ -156,6 +160,10 @@ export class TransactionParser {
           }
 
           const tokenInInfo = await this.tokenUtils.getParsedTokenInfo(tokenInMint)
+          if (!tokenInInfo) {
+            logger.warn(`Failed to get token info for ${tokenInMint}`)
+            return
+          }
 
           tokenIn = tokenInInfo.data.symbol.replace(/\x00/g, '')
           tokenOut = 'SOL'
@@ -232,6 +240,10 @@ export class TransactionParser {
           }
 
           const tokenOutInfo = await this.tokenUtils.getParsedTokenInfo(tokenOutMint)
+          if (!tokenOutInfo) {
+            logger.warn(`Failed to get token info for ${tokenOutMint}`)
+            return
+          }
 
           tokenOut = tokenOutInfo.data.symbol.replace(/\x00/g, '')
           tokenIn = 'SOL'
@@ -245,6 +257,10 @@ export class TransactionParser {
           }
 
           const tokenInInfo = await this.tokenUtils.getParsedTokenInfo(tokenInMint)
+          if (!tokenInInfo) {
+            logger.warn(`Failed to get token info for ${tokenInMint}`)
+            return
+          }
 
           tokenIn = tokenInInfo.data.symbol.replace(/\x00/g, '')
           tokenOut = 'SOL'
@@ -315,7 +331,7 @@ export class TransactionParser {
       }
 
       // for pump fun transactions
-      if (transactions.length === 1 || transactions.length[0]?.info?.amount === transactions[1]?.info?.amount) {
+      if (transactions.length === 1 || transactions[0]?.info?.amount === transactions[1]?.info?.amount) {
         if (nativeBalance?.type === 'sell') {
           tokenOutMint = await this.tokenUtils.getTokenMintAddressWithFallback(transactions)
           tokenInMint = 'So11111111111111111111111111111111111111112'
@@ -326,6 +342,10 @@ export class TransactionParser {
           }
 
           const tokenOutInfo = await this.tokenUtils.getParsedTokenInfo(tokenOutMint)
+          if (!tokenOutInfo) {
+            logger.warn(`Failed to get token info for ${tokenOutMint}`)
+            return
+          }
 
           tokenOut = tokenOutInfo.data.symbol.replace(/\x00/g, '')
           tokenIn = 'SOL'
@@ -339,6 +359,10 @@ export class TransactionParser {
           }
 
           const tokenInInfo = await this.tokenUtils.getParsedTokenInfo(tokenInMint)
+          if (!tokenInInfo) {
+            logger.warn(`Failed to get token info for ${tokenInMint}`)
+            return
+          }
 
           tokenIn = tokenInInfo.data.symbol.replace(/\x00/g, '')
           tokenOut = 'SOL'
@@ -450,8 +474,8 @@ export class TransactionParser {
         solPrice: solPriceUsd ?? '0',
         signature: this.transactionSignature,
       }
-    } catch {
-      logger.info('PARSE_TRANSFERS_ERROR')
+    } catch (error) {
+      logger.info('PARSE_TRANSFERS_ERROR', error)
       return
     }
   }

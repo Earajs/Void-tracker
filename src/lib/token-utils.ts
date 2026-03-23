@@ -94,16 +94,21 @@ export class TokenUtils {
     }
   }
 
-  public async getParsedTokenInfo(tokenMint: string): Promise<ParsedTokenInfo> {
-    const mintPublicKey = new PublicKey(tokenMint)
-    // const [tokenmetaPubkey, bump] = PublicKey.findProgramAddressSync([], mintPublicKey)
-    const tokenmetaPubkey = await deprecated.Metadata.getPDA(mintPublicKey)
+  public async getParsedTokenInfo(tokenMint: string): Promise<ParsedTokenInfo | null> {
+    try {
+      const mintPublicKey = new PublicKey(tokenMint)
+      // const [tokenmetaPubkey, bump] = PublicKey.findProgramAddressSync([], mintPublicKey)
+      const tokenmetaPubkey = await deprecated.Metadata.getPDA(mintPublicKey)
 
-    const tokenContent = await Metadata.fromAccountAddress(this.connection, tokenmetaPubkey)
+      const tokenContent = await Metadata.fromAccountAddress(this.connection, tokenmetaPubkey)
 
-    const token = tokenContent.pretty()
+      const token = tokenContent.pretty()
 
-    return token
+      return token
+    } catch (error) {
+      logger.error(`Error fetching token info for ${tokenMint}:`, error)
+      return null
+    }
   }
 
   static async getSolPriceGecko(): Promise<string | undefined> {
